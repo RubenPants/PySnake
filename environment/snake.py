@@ -5,7 +5,7 @@ TODO
 """
 from random import choice, randrange
 
-from utils.dictionary import DIR
+from utils.direction import DIR
 from utils.pos import Pos
 
 
@@ -24,12 +24,13 @@ class Snake:
     def reset(self):
         """Reset all the class' parameters."""
         self.direction = choice(DIR)  # Random initial direction
-        pos = Pos(x=randrange(2, self.game.width - 2), y=randrange(2, self.game.height - 2))
+        pos = Pos(x=randrange(self.length_init, self.game.width - self.length_init),
+                  y=randrange(self.length_init, self.game.height - self.length_init))
         self.body = [pos]
-        self.length = self.length_init
+        self.length = 1
         
         # Initial snake has length of 3
-        for _ in range(self.length - 1): self.step(eat=True)
+        for _ in range(self.length_init - 1): self.step(eat=True)
     
     def step(self, eat=False):
         """
@@ -41,4 +42,7 @@ class Snake:
         self.body.insert(0, Pos(t=self.direction) + self.body[0])
         
         # Nothing eaten, remove last segment from tail
-        if not eat: self.body = self.body[:-1]
+        if not eat:
+            self.body = self.body[:-1]
+        else:
+            self.length += 1
