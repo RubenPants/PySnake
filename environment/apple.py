@@ -1,7 +1,7 @@
 """
 apple.py
 
-TODO
+Class representing the apple entity within the game.
 """
 from random import randrange
 

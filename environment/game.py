@@ -19,7 +19,7 @@ class Game:
     def __init__(self,
                  width=20,
                  height=20,
-                 pixels=10):
+                 pixels=20):
         """
         Game object used as an environment to contain the snake entity.
         
@@ -31,6 +31,7 @@ class Game:
         self.height = height
         self.pixels = pixels
         self.score = 0
+        self.step = 0
         
         # Initialise the snake
         self.snake = Snake(game=self)
@@ -44,8 +45,10 @@ class Game:
     def reset(self):
         """Reset the game environment."""
         self.score = 0
+        self.step = 0
         self.clear_board()
-        pass  # TODO
+        self.snake = Snake(game=self)
+        self.apple = Apple(game=self)
     
     def create_board(self):
         """Create the initial board."""
@@ -68,6 +71,7 @@ class Game:
         self.board[1:-1, 1:-1] = np.zeros((self.width - 2, self.height - 2))
     
     def update_board(self):
+        """Update the position of the snake and apple."""
         self.clear_board()
         for p in self.snake.body: self.board[p.x, p.y] = -1
         self.board[self.apple.pos.x, self.apple.pos.y] = 1
@@ -93,20 +97,17 @@ class Game:
         elif a == 2:
             self.snake.direction = turn_right(self.snake.direction)
         
-        # Check if apple is eaten
-        eaten = False
-        if self.snake.body[0] == self.apple.pos:
-            self.score += 1
-            self.apple.new_location()
-            eaten = True
-        
         # Update snake position
-        self.snake.step(eat=eaten)
+        eaten = self.snake.step(apple=self.apple.pos)
+        if eaten:
+            self.apple.new_location()
+            self.score += 1
+        
         return eaten
     
     def train(self, brain):
         """Training of a brain which happens without visualisations at maximum speed."""
-        pass
+        pass  # TODO: Create
     
     def visualise(self, brain=None):
         """Visualise the performance of a given brain."""
@@ -180,7 +181,13 @@ class Game:
                 elif key == arcade.key.DOWN and self.snake.direction != UP:
                     self.snake.direction = DOWN
         
-        def update_method(dt):  # Input dt ignored
+        def update_method(dt):
+            """Update the game environment."""
+            # Query brain to get action for current state
+            if brain:
+                raise NotImplementedError("Create implementation for the brain first")
+            
+            # Progress the game
             eaten = self.update(a=0)
             
             # Remove the oldest added shape
@@ -197,11 +204,7 @@ class Game:
             
             # Perform required action
             space.step(dt)
-            
-            # Query brain with new state if required
-            if brain:
-                raise NotImplementedError("Create implementation for the brain first")
         
         # Run the game
-        pyglet.clock.schedule_interval(update_method, .1)  # TODO
+        pyglet.clock.schedule_interval(update_method, .1)
         pyglet.app.run()

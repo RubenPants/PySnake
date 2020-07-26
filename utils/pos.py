@@ -1,7 +1,7 @@
 """
 pos.py
 
-Position class.
+Two dimensional position class.
 """
 
 
