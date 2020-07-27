@@ -14,16 +14,16 @@ class Agent:
     }
     
     def __init__(self, message_tag=None):
-        """TODO"""
+        """Initialise the common parameters shared by all agents."""
         assert message_tag in MESSENGERS
         self.m_tag = message_tag  # Type of messages the agent wants to receive
         self.last_score = 0  # Previous score of the game, parsed from messenger
     
     def __call__(self, msg):
         """
-        TODO
+        Call the agent to determine the next best action given a certain state (msg).
         
         :param msg: Message sent by own messenger
         :return: Action, which is either 0 (straight), 1 (left), or 2 (right)
         """
-        pass  # TODO
+        raise NotImplementedError

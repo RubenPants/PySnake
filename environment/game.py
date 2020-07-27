@@ -10,6 +10,7 @@ import pymunk
 from pymunk.pyglet_util import DrawOptions
 
 from agents.base import Agent
+from agents.empty import Empty
 from environment.apple import Apple
 from environment.messenger import Messenger
 from environment.snake import Snake
@@ -19,8 +20,8 @@ from utils.gen_int import IntegerGenerator
 
 class Game:
     def __init__(self,
-                 width=20,
-                 height=20,
+                 width=30,
+                 height=30,
                  pixels=20):
         """
         Game object used as an environment to contain the snake entity.
@@ -110,7 +111,7 @@ class Game:
         """Training of a brain which happens without visualisations at maximum speed."""
         pass  # TODO: Create
     
-    def visualise(self, brain: Agent = None):
+    def visualise(self, brain: Agent = Empty(), manual: bool = True):
         """Visualise the performance of a given brain."""
         # Regularly used constants
         width = self.width * self.pixels
@@ -169,11 +170,11 @@ class Game:
             window.clear()
             space.debug_draw(options=options)
         
-        if brain:
-            # Prepare the brain
-            messenger = Messenger(self)
-        else:
-            # Make game keyboard sensitive
+        # Prepare the brain
+        messenger = Messenger(self)
+        
+        # Make game keyboard sensitive
+        if manual:
             @window.event
             def on_key_press(key, _):
                 """Called whenever a key is pressed to record manual input."""
@@ -189,10 +190,8 @@ class Game:
         def update_method(dt):
             """Update the game environment."""
             # Query brain to get action for current state
-            if brain:
-                a = brain(messenger(brain.m_tag))
-            else:
-                a = 0
+            a = brain(messenger(brain.m_tag))
+            
             # Progress the game
             eaten = self.update(a=a)
             
