@@ -9,7 +9,9 @@ import pyglet
 import pymunk
 from pymunk.pyglet_util import DrawOptions
 
+from agents.base import Agent
 from environment.apple import Apple
+from environment.messenger import Messenger
 from environment.snake import Snake
 from utils.direction import DOWN, LEFT, RIGHT, turn_left, turn_right, UP
 from utils.gen_int import IntegerGenerator
@@ -109,7 +111,7 @@ class Game:
         """Training of a brain which happens without visualisations at maximum speed."""
         pass  # TODO: Create
     
-    def visualise(self, brain=None):
+    def visualise(self, brain: Agent = None):
         """Visualise the performance of a given brain."""
         # Regularly used constants
         width = self.width * self.pixels
@@ -168,7 +170,11 @@ class Game:
             window.clear()
             space.debug_draw(options=options)
         
-        if not brain:
+        if brain:
+            # Prepare the brain
+            messenger = Messenger(self)
+        else:
+            # Make game keyboard sensitive
             @window.event
             def on_key_press(key, _):
                 """Called whenever a key is pressed to record manual input."""
@@ -185,10 +191,11 @@ class Game:
             """Update the game environment."""
             # Query brain to get action for current state
             if brain:
-                raise NotImplementedError("Create implementation for the brain first")
-            
+                a = brain(messenger(brain.m_tag))
+            else:
+                a = 0
             # Progress the game
-            eaten = self.update(a=0)
+            eaten = self.update(a=a)
             
             # Remove the oldest added shape
             for shape in space.shapes:

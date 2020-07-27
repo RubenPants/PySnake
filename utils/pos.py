@@ -20,6 +20,9 @@ class Pos:
     def __repr__(self):
         return str(self)
     
+    def __hash__(self):
+        return hash((self.x, self.y))
+    
     def __getitem__(self, i):
         if i == 0:
             return self.x
@@ -47,6 +50,28 @@ class Pos:
             return self.x == other[0] and self.y == other[1]
         else:
             return False
+    
+    def __lt__(self, other):
+        if hasattr(other, "__getitem__") and len(other) == 2:
+            if self.x < other[0]:
+                return True
+            elif (self.x == other[0]) and (self.y < other[1]):
+                return True
+            else:
+                return False
+        else:
+            raise TypeError(f"Not possible to use '<' operator on objects {type(self)} and {type(other)}")
+    
+    def __gt__(self, other):
+        if hasattr(other, "__getitem__") and len(other) == 2:
+            if self.x > other[0]:
+                return True
+            elif (self.x == other[0]) and (self.y > other[1]):
+                return True
+            else:
+                return False
+        else:
+            raise TypeError(f"Not possible to use '>' operator on objects {type(self)} and {type(other)}")
     
     def __ne__(self, other):
         if hasattr(other, "__getitem__") and len(other) == 2:
