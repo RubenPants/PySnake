@@ -31,7 +31,7 @@ def transformFirstPerson(board, head_pos, head_dir):
     if head_dir == RIGHT: board = np.rot90(board, 1)
     if head_dir == DOWN: board = np.rot90(board, 2)
     if head_dir == LEFT: board = np.rot90(board, 3)
-    return board
+    return board.reshape(board.shape + (1,))
 
 
 def transformFlat(board):
@@ -41,4 +41,5 @@ def transformFlat(board):
     :param board: The current board to be flattened
     :return: Flattened board
     """
-    return board.flatten()
+    flat = board.flatten()
+    return flat.reshape((1,) + flat.shape)

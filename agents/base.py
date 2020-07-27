@@ -28,5 +28,5 @@ class Agent:
         """
         raise NotImplementedError
     
-    def reset(self, n_envs):
+    def reset(self, n_envs, sample_msg):
         self.last_score = [0] * n_envs

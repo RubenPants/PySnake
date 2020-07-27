@@ -26,14 +26,14 @@ class AStar(Agent):
     
     def __call__(self, msgs):
         """
-        Define the path
+        Define the 'most suitable action' (as defined by the policy) for each of the games.
         
         :param msgs: List of messages sent by requested messenger
         :return: List of actions, where each action is either 0 (straight), 1 (left), or 2 (right)
         """
-        # Reset if never initialised
-        if self.recalculate is None: self.reset(n_envs=len(msgs))
+        if self.recalculate is None: raise Exception("Initialise first via 'reset'")
         
+        # Loop over all the inputs to decide on each corresponding action
         actions = []
         for i in range(len(msgs)):
             # Parse message of requested game
@@ -77,8 +77,8 @@ class AStar(Agent):
             actions.append(action)
         return actions
     
-    def reset(self, n_envs):
-        super().reset(n_envs=n_envs)
+    def reset(self, n_envs, sample_msg):
+        super().reset(n_envs=n_envs, sample_msg=sample_msg)
         self.recalculate = [0] * n_envs
         self.path_remainder = [[], ] * n_envs
 
