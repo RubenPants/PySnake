@@ -6,25 +6,35 @@ Create a game instance which acts as a container for all the other elements (sna
 import numpy as np
 
 from environment.apple import Apple
+from environment.messenger import create_message
 from environment.snake import Snake
 from utils.direction import turn_left, turn_right
 
 
 class Game:
+    __slots__ = {
+        'width', 'height', 'pixels', 'msg_tag', 'score', 'steps',
+        'snake', 'apple', 'board'
+    }
+    
     def __init__(self,
+                 msg_tag: str,
                  width=20,
                  height=20,
-                 pixels=20):
+                 pixels=20,
+                 ):
         """
         Game object used as an environment to contain the snake entity.
         
         :param width: Width of the playing field
         :param height: Height of the playing field
         :param pixels: Number of pixels for each tile of the game
+        :param msg_tag: Tag indicating type of messenger to be used to communicate game-state to agent
         """
         self.width = width
         self.height = height
         self.pixels = pixels
+        self.msg_tag = msg_tag
         self.score = 0
         self.steps = 0
         
@@ -38,6 +48,10 @@ class Game:
         self.board = self.create_board()
     
     # ----------------------------------------------------> MAIN <---------------------------------------------------- #
+    
+    def get_msg(self):
+        """Get a message of the current game state."""
+        return create_message(game=self)
     
     def step(self, a):
         """Update the game with the corresponding action."""

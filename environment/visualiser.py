@@ -11,12 +11,11 @@ from pymunk.pyglet_util import DrawOptions
 from agents.base import Agent
 from agents.empty import Empty
 from environment.game import Game
-from environment.messenger import Messenger
 from utils.direction import DOWN, LEFT, RIGHT, UP
 from utils.gen_int import IntegerGenerator
 
 
-def live_visualisation(agent: Agent = Empty(), game: Game = Game()):
+def live_visualisation(agent: Agent, game: Game):
     """Visualise the performance of the given agent."""
     # Regularly used constants
     width = game.width * game.pixels
@@ -84,9 +83,6 @@ def live_visualisation(agent: Agent = Empty(), game: Game = Game()):
         label.draw()
         space.debug_draw(options=options)
     
-    # Prepare the brain
-    messenger = Messenger(game)
-    
     # Make game keyboard sensitive
     if type(agent) == Empty:
         @window.event
@@ -104,7 +100,7 @@ def live_visualisation(agent: Agent = Empty(), game: Game = Game()):
     def update_method(dt):
         """Update the game environment."""
         # Query brain to get action for current state
-        a = agent([messenger(agent.m_tag)])[0]
+        a = agent([game.get_msg()])[0]
         
         # Progress the game
         eaten = game.step(a=a)

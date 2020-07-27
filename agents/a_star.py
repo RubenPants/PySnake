@@ -14,15 +14,15 @@ class AStar(Agent):
     """Adaptation of the A* algorithm."""
     
     __slots__ = {
-        'n_envs', 'm_tag', 'last_score',
+        'm_tag', 'last_score',
         'refresh_rate', 'recalculate', 'path_remainder'
     }
     
-    def __init__(self, n_envs: int = 1, refresh_rate=10):
-        super().__init__(n_envs=n_envs, message_tag=M_DATA)
+    def __init__(self, refresh_rate=10):
+        super().__init__(message_tag=M_DATA)
         self.refresh_rate = refresh_rate  # Number of steps before recalculation
-        self.recalculate = [0] * self.n_envs  # Timer until recalculation
-        self.path_remainder = [[], ] * self.n_envs
+        self.recalculate = None  # Timer until recalculation
+        self.path_remainder = None
     
     def __call__(self, msgs):
         """
@@ -31,15 +31,17 @@ class AStar(Agent):
         :param msgs: List of messages sent by requested messenger
         :return: List of actions, where each action is either 0 (straight), 1 (left), or 2 (right)
         """
-        assert len(msgs) == self.n_envs
+        # Reset if never initialised
+        if self.recalculate is None: self.reset(n_envs=len(msgs))
+        
         actions = []
-        for i in range(self.n_envs):
+        for i in range(len(msgs)):
             # Parse message of requested game
             msg = msgs[i]
             
             # Previous apple was eaten, reset
-            if msg[M_SCORE] > self.last_score:
-                self.last_score = msg[M_SCORE]
+            if msg[M_SCORE] > self.last_score[i]:
+                self.last_score[i] = msg[M_SCORE]
                 self.recalculate[i] = 0
             
             # Recalculate a new path
@@ -53,12 +55,17 @@ class AStar(Agent):
                     self.path_remainder[i] = a_star(start=start, goal=goal, dim=dim, body=body)
                 except ValueError:  # If no path is found, get random neighbour
                     neighbours = get_neighbours(pos=start, goal=goal, dim=dim, body=body)
-                    if len(neighbours) == 0: return 0  # We dead..
+                    self.recalculate[i] = 0
+                    if len(neighbours) == 0:  # We dead..
+                        actions.append(0)
+                        continue
                     min_n = min(neighbours)
                     self.path_remainder[i] = [min_n[1]]
-                    self.recalculate[i] = 0
             
             # Translate next position to an action and return this action
+            if len(self.path_remainder[i]) == 0:  # We dead..
+                actions.append(0)
+                continue
             next_pos = self.path_remainder[i][0]
             action = 0  # Straight by default
             if (start + turn_left(msg[M_DIR])) == next_pos: action = 1  # Turn left
@@ -68,9 +75,12 @@ class AStar(Agent):
             self.path_remainder[i] = self.path_remainder[i][1:]
             self.recalculate[i] -= 1
             actions.append(action)
-        
-        assert len(actions) == self.n_envs
         return actions
+    
+    def reset(self, n_envs):
+        super().reset(n_envs=n_envs)
+        self.recalculate = [0] * n_envs
+        self.path_remainder = [[], ] * n_envs
 
 
 def a_star(start, goal, dim, body):

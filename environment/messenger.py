@@ -19,18 +19,12 @@ M_SCORE = 'score'
 MESSENGERS = [M_RAW, M_RELATIVE, M_FLAT, M_DATA]
 
 
-class Messenger:
-    """Base messenger class."""
-    
-    def __init__(self, game):
-        self.game = game
-    
-    def __call__(self, tag):
-        if tag == M_RAW: return get_raw(self.game)
-        if tag == M_RELATIVE: return get_relative(self.game)
-        if tag == M_FLAT: return get_flat(self.game)
-        if tag == M_DATA: return get_data(self.game)
-        raise MessengerException("Messenger type not supported")
+def create_message(game):
+    if game.msg_tag == M_RAW: return get_raw(game)
+    if game.msg_tag == M_RELATIVE: return get_relative(game)
+    if game.msg_tag == M_FLAT: return get_flat(game)
+    if game.msg_tag == M_DATA: return get_data(game)
+    raise MessengerException("Messenger type not supported")
 
 
 def get_raw(game):

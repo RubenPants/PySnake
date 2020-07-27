@@ -14,8 +14,8 @@ class Empty(Agent):
         'm_tag', 'last_score',
     }
     
-    def __init__(self, n_envs: int = 1):
-        super().__init__(n_envs=n_envs, message_tag=M_RAW)  # Dummy messenger
+    def __init__(self):
+        super().__init__(message_tag=M_RAW)  # Dummy messenger
     
     def __call__(self, _):
         """Always drives straight."""
