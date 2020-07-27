@@ -43,7 +43,14 @@ class AStar(Agent):
             self.recalculate = self.refresh_rate
             goal = msg[M_APPLE].pos
             dim = msg[M_DIM]
-            self.path_remainder = a_star(start=start, goal=goal, dim=dim, body=body)
+            try:
+                self.path_remainder = a_star(start=start, goal=goal, dim=dim, body=body)
+            except ValueError:  # If no path is found, get random neighbour
+                neighbours = get_neighbours(pos=start, goal=goal, dim=dim, body=body)
+                if len(neighbours) == 0: return 0  # We dead..
+                min_n = min(neighbours)
+                self.path_remainder = [min_n[1]]
+                self.recalculate = 0
         
         # Translate next position to an action and return this action
         next_pos = self.path_remainder[0]

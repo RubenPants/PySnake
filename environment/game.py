@@ -63,7 +63,6 @@ class Game:
         board[:, -1] = np.ones((self.height,)) * -1
         
         # Add snake and apple
-        print(self.snake.body)
         for p in self.snake.body: board[p.x, p.y] = -1
         board[self.apple.pos.x, self.apple.pos.y] = 1
         return board
@@ -213,5 +212,5 @@ class Game:
             space.step(dt)
         
         # Run the game
-        pyglet.clock.schedule_interval(update_method, .1)
+        pyglet.clock.schedule_interval(update_method, .05)
         pyglet.app.run()
