@@ -10,12 +10,13 @@ class Agent:
     """Base Agent class."""
     
     __slots__ = {
-        'm_tag', 'last_score'
+        'n_envs', 'm_tag', 'last_score'
     }
     
-    def __init__(self, message_tag=None):
+    def __init__(self, n_envs: int = 1, message_tag=None):
         """Initialise the common parameters shared by all agents."""
         assert message_tag in MESSENGERS
+        self.n_envs = n_envs  # Number of environments on which the agent is evaluated
         self.m_tag = message_tag  # Type of messages the agent wants to receive
         self.last_score = 0  # Previous score of the game, parsed from messenger
     

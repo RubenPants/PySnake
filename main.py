@@ -4,7 +4,8 @@ main.py
 TODO
 """
 from agents.a_star import AStar
-from environment.game import Game
+from environment.visualiser import live_visualisation
 
-game = Game()
-game.visualise(AStar())
+agent = AStar()
+
+live_visualisation(agent=agent)

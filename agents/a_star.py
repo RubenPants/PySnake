@@ -14,54 +14,63 @@ class AStar(Agent):
     """Adaptation of the A* algorithm."""
     
     __slots__ = {
-        'm_tag', 'last_score',
+        'n_envs', 'm_tag', 'last_score',
         'refresh_rate', 'recalculate', 'path_remainder'
     }
     
-    def __init__(self, refresh_rate=10):
-        super().__init__(M_DATA)
+    def __init__(self, n_envs: int = 1, refresh_rate=10):
+        super().__init__(n_envs=n_envs, message_tag=M_DATA)
         self.refresh_rate = refresh_rate  # Number of steps before recalculation
-        self.recalculate = 0  # Timer until recalculation
-        self.path_remainder = []
+        self.recalculate = [0] * self.n_envs  # Timer until recalculation
+        self.path_remainder = [[], ] * self.n_envs
     
-    def __call__(self, msg):
+    def __call__(self, msgs):
         """
         Define the path
         
-        :param msg: Message sent by own messenger
-        :return: Action, which is either 0 (straight), 1 (left), or 2 (right)
+        :param msgs: List of messages sent by requested messenger
+        :return: List of actions, where each action is either 0 (straight), 1 (left), or 2 (right)
         """
-        # Previous apple was eaten, reset
-        if msg[M_SCORE] > self.last_score:
-            self.last_score = msg[M_SCORE]
-            self.recalculate = 0
+        assert len(msgs) == self.n_envs
+        actions = []
+        for i in range(self.n_envs):
+            # Parse message of requested game
+            msg = msgs[i]
+            
+            # Previous apple was eaten, reset
+            if msg[M_SCORE] > self.last_score:
+                self.last_score = msg[M_SCORE]
+                self.recalculate[i] = 0
+            
+            # Recalculate a new path
+            body = msg[M_BODY]
+            start = body[0]
+            if self.recalculate[i] <= 0:
+                self.recalculate[i] = self.refresh_rate
+                goal = msg[M_APPLE].pos
+                dim = msg[M_DIM]
+                try:
+                    self.path_remainder[i] = a_star(start=start, goal=goal, dim=dim, body=body)
+                except ValueError:  # If no path is found, get random neighbour
+                    neighbours = get_neighbours(pos=start, goal=goal, dim=dim, body=body)
+                    if len(neighbours) == 0: return 0  # We dead..
+                    min_n = min(neighbours)
+                    self.path_remainder[i] = [min_n[1]]
+                    self.recalculate[i] = 0
+            
+            # Translate next position to an action and return this action
+            next_pos = self.path_remainder[i][0]
+            action = 0  # Straight by default
+            if (start + turn_left(msg[M_DIR])) == next_pos: action = 1  # Turn left
+            if (start + turn_right(msg[M_DIR])) == next_pos: action = 2  # Turn right
+            
+            # Progress one step internally
+            self.path_remainder[i] = self.path_remainder[i][1:]
+            self.recalculate[i] -= 1
+            actions.append(action)
         
-        # Recalculate a new path
-        body = msg[M_BODY]
-        start = body[0]
-        if self.recalculate <= 0:
-            self.recalculate = self.refresh_rate
-            goal = msg[M_APPLE].pos
-            dim = msg[M_DIM]
-            try:
-                self.path_remainder = a_star(start=start, goal=goal, dim=dim, body=body)
-            except ValueError:  # If no path is found, get random neighbour
-                neighbours = get_neighbours(pos=start, goal=goal, dim=dim, body=body)
-                if len(neighbours) == 0: return 0  # We dead..
-                min_n = min(neighbours)
-                self.path_remainder = [min_n[1]]
-                self.recalculate = 0
-        
-        # Translate next position to an action and return this action
-        next_pos = self.path_remainder[0]
-        action = 0  # Straight by default
-        if (start + turn_left(msg[M_DIR])) == next_pos: action = 1  # Turn left
-        if (start + turn_right(msg[M_DIR])) == next_pos: action = 2  # Turn right
-        
-        # Progress one step internally
-        self.path_remainder = self.path_remainder[1:]
-        self.recalculate -= 1
-        return action
+        assert len(actions) == self.n_envs
+        return actions
 
 
 def a_star(start, goal, dim, body):
