@@ -50,9 +50,9 @@ class Game:
     
     # ----------------------------------------------------> MAIN <---------------------------------------------------- #
     
-    def get_msg(self):
+    def get_msg(self, tag: str = None):
         """Get a message of the current game state."""
-        return create_message(game=self)
+        return create_message(tag=tag if tag else self.msg_tag, game=self)
     
     def step(self, a):
         """

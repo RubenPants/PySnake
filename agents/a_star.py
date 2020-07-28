@@ -12,7 +12,7 @@ from utils.direction import DIR, turn_left, turn_right
 
 class AStar(Agent):
     """Adaptation of the A* algorithm."""
-    
+
     __slots__ = {
         'training', 'm_tag', 'last_score',
         'refresh_rate', 'recalculate', 'path_remainder'
@@ -49,7 +49,7 @@ class AStar(Agent):
             start = body[0]
             if self.recalculate[i] <= 0:
                 self.recalculate[i] = self.refresh_rate
-                goal = msg[M_APPLE].pos
+                goal = msg[M_APPLE]
                 dim = msg[M_DIM]
                 try:
                     self.path_remainder[i] = a_star(start=start, goal=goal, dim=dim, body=body)

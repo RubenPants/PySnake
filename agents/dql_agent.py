@@ -69,7 +69,7 @@ class DeepQLearning(Agent):
     
     def reset(self, n_envs, sample_msg):
         super().reset(n_envs=n_envs, sample_msg=sample_msg)
-        if not self.model and not self.load_model(): self.create_model(sample_msg[M_BOARD].shape)
+        if not self.model and not self.load_model(): self.create_model(np.asarray(sample_msg[M_BOARD]).shape)
         self.eps = self.eps_max
         self.states_mem = []
         self.action_mem = []
@@ -114,6 +114,9 @@ class DeepQLearning(Agent):
     def create_model(self, input_dim):
         self.model = create_model(model_tag=self.model_t, input_dim=input_dim)
         self.model.summary()
+    
+    def pre_train(self):
+        pass  # TODO
     
     def train(self, duration):
         """

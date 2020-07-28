@@ -35,7 +35,7 @@ class Agent:
         self.last_score = [0] * n_envs
     
     def train(self, duration):
-        raise NotImplementedError
+        warnings.warn("Nothing is trained")
     
     def save_model(self, model_name: str = None):
         """Save the current model. May be redundant for non-NN models."""
