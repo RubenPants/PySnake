@@ -14,7 +14,7 @@ class AStar(Agent):
     """Adaptation of the A* algorithm."""
     
     __slots__ = {
-        'm_tag', 'last_score',
+        'training', 'm_tag', 'last_score',
         'refresh_rate', 'recalculate', 'path_remainder'
     }
     

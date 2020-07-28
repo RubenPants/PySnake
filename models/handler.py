@@ -27,9 +27,6 @@ def get_mlp(input_dim):
     """
     model = tf.keras.Sequential()
     model.add(tf.keras.layers.Flatten(input_shape=input_dim))
-    model.add(tf.keras.layers.Dense(128,
-                                    activation='relu',
-                                    name='Start'))
     model.add(tf.keras.layers.Dense(32,
                                     activation='relu',
                                     name='Intermediate'))
@@ -54,7 +51,7 @@ def get_cnn(input_dim):
                                      activation='relu',
                                      name='Conv2D_1'))
     model.add(tf.keras.layers.Conv2D(filters=32,
-                                     kernel_size=4,  # Larger kernel, wider 'viewing angles'
+                                     kernel_size=2,  # Larger kernel, wider 'viewing angles'
                                      activation='relu',
                                      name='Conv2D_2'))
     model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2),

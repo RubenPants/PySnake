@@ -25,8 +25,8 @@ class Snake:
     def reset(self):
         """Reset all the class' parameters."""
         self.direction = choice(DIR)  # Random initial direction
-        pos = Pos(x=randrange(self.length_init * 2, self.game.width - self.length_init * 2),
-                  y=randrange(self.length_init * 2, self.game.height - self.length_init * 2))
+        pos = Pos(x=randrange(self.length_init + 1, self.game.width - (self.length_init + 1)),
+                  y=randrange(self.length_init + 1, self.game.height - (self.length_init + 1)))
         self.body = [pos]
         self.length = 1
         

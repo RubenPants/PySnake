@@ -11,7 +11,7 @@ class Empty(Agent):
     """Adaptation of the A* algorithm."""
     
     __slots__ = {
-        'm_tag', 'last_score',
+        'training', 'm_tag', 'last_score',
     }
     
     def __init__(self):

@@ -9,6 +9,7 @@ from environment.apple import Apple
 from environment.messenger import create_message
 from environment.snake import Snake
 from utils.direction import turn_left, turn_right
+from utils.exceptions import PositionException
 
 
 class Game:
@@ -19,8 +20,8 @@ class Game:
     
     def __init__(self,
                  msg_tag: str,
-                 width=20,
-                 height=20,
+                 width=10,
+                 height=10,
                  pixels=20,
                  ):
         """
@@ -54,22 +55,27 @@ class Game:
         return create_message(game=self)
     
     def step(self, a):
-        """Update the game with the corresponding action."""
+        """
+        Update the game with the corresponding action.
+        
+        :param a: Action to perform
+        :return: Boolean indicating if game is still running
+        """
         assert a in [0, 1, 2]  # Straight, left, right
-        if a == 1:
-            self.snake.direction = turn_left(self.snake.direction)
-        elif a == 2:
-            self.snake.direction = turn_right(self.snake.direction)
+        if a == 1: self.snake.direction = turn_left(self.snake.direction)
+        if a == 2: self.snake.direction = turn_right(self.snake.direction)
         
         # Update snake position
-        eaten = self.snake.step(apple=self.apple.pos)
-        if eaten:
-            self.apple.new_location()
-            self.score += 1
+        try:
+            if self.snake.step(apple=self.apple.pos):
+                self.apple.new_location()
+                self.score += 1
+        except PositionException:
+            return False
         
         # Update the board
         self.update_board()
-        return eaten
+        return True
     
     def reset(self):
         """Reset the game environment."""

@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from agents.base import Agent
 from environment.game import Game
-from utils.exceptions import PositionException
 
 
 class Manager:
@@ -22,12 +21,55 @@ class Manager:
         self.n_envs = n_envs
         self.max_steps = max_steps if max_steps else float("inf")
     
+    def train_batch(self, iterations: int = 1000):
+        for _ in range(iterations):
+            scores = self.train()
+            print(min(scores), "-", sum(scores) / len(scores), "-", max(scores))
+    
     def train(self):
         """Play the game while recording actions and rewards."""
-        pass
+        self.agent.training = True
+        
+        # Create all the games
+        games = []
+        for _ in range(self.n_envs): games.append(Game(self.agent.m_tag))
+        
+        # Reset the agent
+        self.agent.reset(self.n_envs, games[0].get_msg())
+        
+        # Fetch the initial states of the games
+        states = []
+        for i in range(self.n_envs): states.append(games[i].get_msg())
+        
+        # Evaluate the agent on the different games
+        duration = [-1, ] * self.n_envs  # First iteration gets duration 0
+        finished = [False, ] * self.n_envs
+        while not all(finished) and max(duration) < self.max_steps:
+            # Get the actions for the current states
+            actions = self.agent(states)
+            
+            # Go over each game and progress by one
+            for i, (g, a, f) in enumerate(zip(games, actions, finished)):
+                if not f:
+                    # Progress the game with one step
+                    finished[i] = not g.step(a=a)
+                    
+                    # Update the state
+                    states[i] = g.get_msg()
+                    
+                    # Progress duration of game
+                    duration[i] += 1
+        
+        # Train the model before returning the scores
+        self.agent.train(duration)
+        
+        # Return the final scores of each game
+        return [g.score for g in games]
     
     def evaluate(self):
         """Play the game and only record the final score."""
+        self.agent.training = False
+        
         # Create all the games
         games = []
         for _ in range(self.n_envs): games.append(Game(self.agent.m_tag))
@@ -53,14 +95,12 @@ class Manager:
             # Go over each game and progress by one
             for i, (g, a, f) in enumerate(zip(games, actions, finished)):
                 if not f:
-                    try:
-                        # Progress the game with one step
-                        g.step(a=a)
-                        
-                        # Update the state
-                        states[i] = g.get_msg()
-                    except PositionException:
-                        finished[i] = True
+                    # Progress the game with one step
+                    finished[i] = not g.step(a=a)
+                    
+                    # Update the state
+                    states[i] = g.get_msg()
+        progress.close()
         
         # Return the final scores of each game
         return [g.score for g in games]

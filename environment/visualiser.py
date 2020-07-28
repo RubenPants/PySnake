@@ -65,6 +65,7 @@ def live_visualisation(agent: Agent, game: Game):
     
     # Create the Snake instance
     snake_i = IntegerGenerator()  # Iterator for the snake segments
+    agent.reset(n_envs=1, sample_msg=game.get_msg())
     
     def draw_snake(init=False):
         """Draw the snake."""
@@ -103,7 +104,10 @@ def live_visualisation(agent: Agent, game: Game):
         a = agent([game.get_msg()])[0]
         
         # Progress the game
-        eaten = game.step(a=a)
+        score_pre = game.score
+        game.step(a=a)
+        score_post = game.score
+        eaten = score_pre != score_post
         
         # Remove the oldest added shape
         for shape in space.shapes:
