@@ -67,6 +67,7 @@ def live_visualisation(agent: Agent = Empty(), game: Game = None):
     
     # Create the Snake instance
     snake_i = IntegerGenerator()  # Iterator for the snake segments
+    agent.training = False
     agent.reset(n_envs=1, sample_msg=game.get_msg())
     
     def draw_snake(init=False):

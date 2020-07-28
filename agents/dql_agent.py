@@ -116,7 +116,7 @@ class DeepQLearning(Agent):
         self.model = create_model(model_tag=self.model_t, input_dim=input_dim)
         self.model.summary()
     
-    def pre_train(self, epochs: int = 10):
+    def pre_train(self, epochs: int = 1):
         """
         Pre-train the model using recordings.
         
@@ -182,6 +182,7 @@ class DeepQLearning(Agent):
                 
                 # Increase the action-chosen Q-value with discounted_score * lr
                 q_value[0][self.actions_mem[t][i_env]] += self.lr * discounted_scores[t]
+                q_value[0][self.actions_mem[t][i_env]] = max(q_value[0][self.actions_mem[t][i_env]], 0)
                 q_values.append(q_value)
             assert len(states) == len(q_values)
         
@@ -189,7 +190,7 @@ class DeepQLearning(Agent):
         self.model.fit(
                 x=np.asarray(states),  # TODO: Add callback to TensorBoard
                 y=np.asarray(q_values),
-                batch_size=64,
+                batch_size=16,
                 epochs=epochs,
         )
         drop(key='dql')
@@ -212,6 +213,7 @@ class DeepQLearning(Agent):
         """Save the current model in the 'models' folder found under root."""
         if self.model_v == 0: return  # Unversioned models aren't saved/loaded
         self.model.save(f"models/dql/{model_name if model_name else f'model_{self.model_v}'}")
+        print("==> Model saved successfully!")
     
     def load_model(self, model_name: str = None):
         """Load the model, return boolean indicating if model loaded successfully or not."""
@@ -220,6 +222,7 @@ class DeepQLearning(Agent):
         try:
             self.model = tf.keras.models.load_model(f"models/dql/{model_name}")
             self.model.summary()
+            print("==> Model loaded successfully!")
             return True
         except OSError:
             return False

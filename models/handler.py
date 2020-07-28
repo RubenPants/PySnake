@@ -34,9 +34,9 @@ def get_mlp(input_dim):
                                     activation='relu',
                                     name='Intermediate'))
     model.add(tf.keras.layers.Dense(3,
-                                    activation='softmax',
+                                    activation='sigmoid',  # Multi-class regression
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['acc', 'mse'])
+    model.compile(loss='mse', optimizer='adam', metrics=['acc'])
     return model
 
 
@@ -64,9 +64,9 @@ def get_cnn(input_dim):
                                     activation='relu',
                                     name='Intermediate'))
     model.add(tf.keras.layers.Dense(3,
-                                    activation='softmax',
+                                    activation='sigmoid',  # Multi-class regression
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['acc', 'mse'])
+    model.compile(loss='mse', optimizer='adam', metrics=['acc'])
     return model
 
 
@@ -87,7 +87,7 @@ def get_rnn(input_dim):
                                     activation='relu',
                                     name='Intermediate'))
     model.add(tf.keras.layers.Dense(3,
-                                    activation='softmax',
+                                    activation='sigmoid',  # Multi-class regression
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['acc', 'mse'])
+    model.compile(loss='mse', optimizer='adam', metrics=['acc'])
     return model

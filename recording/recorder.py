@@ -81,6 +81,7 @@ def save_recording(actions, s_relative, s_flat, scores, duration):
     n = len(glob("recording/data/a_star*"))
     with open(f'recording/data/a_star_{n + 1}.json', 'w') as f:
         json.dump(data, f, indent=2)
+    print(f"Saved record {n + 1}")
 
 
 def load_recording(path):
