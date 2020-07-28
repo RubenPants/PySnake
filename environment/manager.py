@@ -43,7 +43,7 @@ class Manager:
         for i in range(self.n_envs): states.append(games[i].get_msg())
         
         # Evaluate the agent on the different games
-        duration = [-1, ] * self.n_envs  # First iteration gets duration 0
+        duration = [0, ] * self.n_envs  # First iteration gets duration 0
         finished = [False, ] * self.n_envs
         while not all(finished) and max(duration) < self.max_steps:
             # Get the actions for the current states

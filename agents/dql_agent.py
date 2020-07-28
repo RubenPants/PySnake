@@ -12,6 +12,7 @@ import tensorflow as tf
 from agents.base import Agent
 from environment.messenger import M_BOARD, M_FLAT, M_RELATIVE, M_SCORE
 from models.handler import CNN, create_model
+from recording.recorder import get_all_recordings, load_recording
 from utils.timing import drop, prep
 
 
@@ -21,7 +22,7 @@ class DeepQLearning(Agent):
     __slots__ = {
         'training', 'm_tag', 'last_score',
         'model', 'model_t', 'model_v',
-        'states_mem', 'action_mem', 'd_scores_mem',
+        'states_mem', 'actions_mem', 'd_scores_mem',
         'gamma', 'lr', 'eps', 'eps_decay', 'eps_max', 'eps_min'
     }
     
@@ -42,7 +43,7 @@ class DeepQLearning(Agent):
         
         # Training
         self.states_mem: list = None  # Keeps the memorised states
-        self.action_mem: list = None  # Keeps the memorised actions
+        self.actions_mem: list = None  # Keeps the memorised actions
         self.d_scores_mem: list = None  # Keeps the memorised delta scores
         
         # DQL specific
@@ -72,7 +73,7 @@ class DeepQLearning(Agent):
         if not self.model and not self.load_model(): self.create_model(np.asarray(sample_msg[M_BOARD]).shape)
         self.eps = self.eps_max
         self.states_mem = []
-        self.action_mem = []
+        self.actions_mem = []
         self.d_scores_mem = []
     
     def query(self, msgs):
@@ -103,7 +104,7 @@ class DeepQLearning(Agent):
         
         # Parse actions from predictions (choose most likely actions)
         actions = [np.argmax(p) for p in predictions]
-        self.action_mem.append(actions)
+        self.actions_mem.append(actions)
         
         # Randomise fraction epsilon of the actions, and decay the epsilon afterwards
         for i in range(len(actions)):
@@ -115,26 +116,47 @@ class DeepQLearning(Agent):
         self.model = create_model(model_tag=self.model_t, input_dim=input_dim)
         self.model.summary()
     
-    def pre_train(self):
-        pass  # TODO
+    def pre_train(self, epochs: int = 10):
+        """
+        Pre-train the model using recordings.
+        
+        :param epochs: Number of training epochs for each recording
+        """
+        for recording_path in get_all_recordings():
+            # Load in the data properly
+            data = load_recording(recording_path)
+            if self.m_tag == M_FLAT:
+                self.states_mem = data['states_flat_mem']
+            else:
+                self.states_mem = data['states_relative_mem']
+            self.actions_mem = data['actions_mem']
+            self.d_scores_mem = data['d_scores_mem']
+            
+            # Check if a model already exists
+            if not self.model and not self.load_model(): self.create_model(self.states_mem[0].shape)
+            
+            # Train the model
+            self.train(duration=data['duration'], epochs=epochs)
     
-    def train(self, duration):
+    def train(self, duration, epochs: int = 1):
         """
         Train the model with the memorised data. Each game is trained sequentially since length of states doesn't
         necessarily coincide.
         
         :param duration: Indicates duration of each simulation
+        :param epochs: Number of training epochs
         """
-        assert self.states_mem and self.action_mem and self.d_scores_mem
-        assert len(self.states_mem) == len(self.action_mem) == len(self.d_scores_mem)
-        assert len(self.states_mem[0]) == len(duration)
+        assert self.states_mem is not None and self.actions_mem is not None and self.d_scores_mem is not None
+        assert len(self.states_mem) == len(self.actions_mem) == len(self.d_scores_mem)
+        assert len(self.states_mem[0]) == len(duration)  # Equal number of environments
+        assert len(self.states_mem) == max(duration)  # Equal number of environments
         prep("Training the DQL agent", key='dql')
         
         # Iterate over each of the environments to collect all the states
         states = []  # Inputs of the model
         q_values = []  # Desired (updated) outputs of the model
         for i_env, d in enumerate(duration):
-            last_state = self.states_mem[d][i_env]
+            last_state = self.states_mem[d - 1][i_env]
             scores = [s[i_env] for s in self.d_scores_mem[1:d]]
             if d == max(duration):
                 if sum(scores) == 0:
@@ -159,7 +181,7 @@ class DeepQLearning(Agent):
                 q_value *= (1 - self.lr)
                 
                 # Increase the action-chosen Q-value with discounted_score * lr
-                q_value[0][self.action_mem[t][i_env]] += self.lr * discounted_scores[t]
+                q_value[0][self.actions_mem[t][i_env]] += self.lr * discounted_scores[t]
                 q_values.append(q_value)
             assert len(states) == len(q_values)
         
@@ -168,10 +190,11 @@ class DeepQLearning(Agent):
                 x=np.asarray(states),  # TODO: Add callback to TensorBoard
                 y=np.asarray(q_values),
                 batch_size=64,
-                epochs=1,
+                epochs=epochs,
         )
         drop(key='dql')
-        print("Average duration:", sum(duration) / len(duration), "steps")  # TODO: Add callback to TensorBoard
+        # print("Average duration:", sum(duration) / len(duration), "steps")  # TODO: Add callback to TensorBoard
+        self.save_model()
     
     def discount(self, scores, last_state):
         """Discount the received rewards."""
