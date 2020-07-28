@@ -15,8 +15,10 @@ from utils.direction import DOWN, LEFT, RIGHT, UP
 from utils.gen_int import IntegerGenerator
 
 
-def live_visualisation(agent: Agent, game: Game):
+def live_visualisation(agent: Agent = Empty(), game: Game = None):
     """Visualise the performance of the given agent."""
+    if not game: game = Game(msg_tag=agent.m_tag)
+    
     # Regularly used constants
     width = game.width * game.pixels
     height = game.height * game.pixels
@@ -105,7 +107,8 @@ def live_visualisation(agent: Agent, game: Game):
         
         # Progress the game
         score_pre = game.score
-        game.step(a=a)
+        alive = game.step(a=a)
+        if not alive: pyglet.app.exit()
         score_post = game.score
         eaten = score_pre != score_post
         
@@ -125,5 +128,5 @@ def live_visualisation(agent: Agent, game: Game):
         space.step(dt)
     
     # Run the game
-    pyglet.clock.schedule_interval(update_method, .001)
+    pyglet.clock.schedule_interval(update_method, .1)
     pyglet.app.run()

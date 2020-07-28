@@ -3,6 +3,8 @@ base.py
 
 The base agent, which should be inherited by the other agents.
 """
+import warnings
+
 from environment.messenger import MESSENGERS
 
 
@@ -34,3 +36,11 @@ class Agent:
     
     def train(self, duration):
         raise NotImplementedError
+    
+    def save_model(self, model_name: str = None):
+        """Save the current model. May be redundant for non-NN models."""
+        warnings.warn("No model saved")
+    
+    def load_model(self, model_name: str = None):
+        """Load the current model. May be redundant for non-NN models."""
+        warnings.warn("No model loaded")

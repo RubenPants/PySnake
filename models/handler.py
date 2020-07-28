@@ -29,11 +29,14 @@ def get_mlp(input_dim):
     model.add(tf.keras.layers.Flatten(input_shape=input_dim))
     model.add(tf.keras.layers.Dense(32,
                                     activation='relu',
+                                    name='Start'))
+    model.add(tf.keras.layers.Dense(32,
+                                    activation='relu',
                                     name='Intermediate'))
     model.add(tf.keras.layers.Dense(3,
                                     activation='softmax',
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam')
+    model.compile(loss='mse', optimizer='adam', metrics=['acc', 'mse'])
     return model
 
 
@@ -63,7 +66,7 @@ def get_cnn(input_dim):
     model.add(tf.keras.layers.Dense(3,
                                     activation='softmax',
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['mae'])
+    model.compile(loss='mse', optimizer='adam', metrics=['acc', 'mse'])
     return model
 
 
@@ -75,7 +78,7 @@ def get_rnn(input_dim):
     :return: RNN
     """
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.GRU(64,
+    model.add(tf.keras.layers.GRU(32,
                                   input_shape=input_dim,
                                   return_sequences=False,
                                   activation='relu',
@@ -86,5 +89,5 @@ def get_rnn(input_dim):
     model.add(tf.keras.layers.Dense(3,
                                     activation='softmax',
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['mae'])
+    model.compile(loss='mse', optimizer='adam', metrics=['acc', 'mse'])
     return model

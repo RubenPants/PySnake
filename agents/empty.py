@@ -19,4 +19,4 @@ class Empty(Agent):
     
     def __call__(self, _):
         """Always drives straight."""
-        return 0
+        return [0]

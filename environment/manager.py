@@ -25,6 +25,7 @@ class Manager:
         for _ in range(iterations):
             scores = self.train()
             print(min(scores), "-", sum(scores) / len(scores), "-", max(scores))
+        self.agent.save_model()
     
     def train(self):
         """Play the game while recording actions and rewards."""

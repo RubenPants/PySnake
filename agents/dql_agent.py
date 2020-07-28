@@ -2,10 +2,12 @@
 dql_agent.py
 
 Agent which is trained using the Deep Q-Learning approach.
+https://en.wikipedia.org/wiki/Q-learning
 """
 from random import choice, random
 
 import numpy as np
+import tensorflow as tf
 
 from agents.base import Agent
 from environment.messenger import M_BOARD, M_FLAT, M_RELATIVE, M_SCORE
@@ -67,7 +69,7 @@ class DeepQLearning(Agent):
     
     def reset(self, n_envs, sample_msg):
         super().reset(n_envs=n_envs, sample_msg=sample_msg)
-        if not self.model: self.load_model(sample_msg[M_BOARD].shape)
+        if not self.model and not self.load_model(): self.create_model(sample_msg[M_BOARD].shape)
         self.eps = self.eps_max
         self.states_mem = []
         self.action_mem = []
@@ -109,7 +111,7 @@ class DeepQLearning(Agent):
         self.eps = max(self.eps * self.eps_decay, self.eps_min)
         return actions
     
-    def load_model(self, input_dim):
+    def create_model(self, input_dim):
         self.model = create_model(model_tag=self.model_t, input_dim=input_dim)
         self.model.summary()
     
@@ -147,7 +149,7 @@ class DeepQLearning(Agent):
                 states.append(self.states_mem[t][i_env])
                 
                 # Fetch the Q-value for the given state
-                q_value = self.model.predict(states[-1])
+                q_value = self.model.predict(states[-1].reshape((1,) + states[-1].shape))
                 assert min(q_value[0]) > 0
                 
                 # Decay the Q-values with the learning rate
@@ -159,21 +161,39 @@ class DeepQLearning(Agent):
             assert len(states) == len(q_values)
         
         # Train the model
-        self.model.fit(x=np.asarray(states),  # TODO: Add callback to TensorBoard
-                       y=np.asarray(q_values),
-                       epochs=1,
-                       verbose=0)
+        self.model.fit(
+                x=np.asarray(states),  # TODO: Add callback to TensorBoard
+                y=np.asarray(q_values),
+                batch_size=64,
+                epochs=1,
+        )
         drop(key='dql')
         print("Average duration:", sum(duration) / len(duration), "steps")  # TODO: Add callback to TensorBoard
     
     def discount(self, scores, last_state):
         """Discount the received rewards."""
         # The initial cumulative reward will be the discounted maximal Q-value of the current (last) state
-        cum_r = self.gamma * np.max(self.model.predict(last_state))
+        cum_r = self.gamma * np.max(self.model.predict(last_state.reshape((1,) + last_state.shape)))
         
         # Discount all the rewards in reverse order (for efficiency)
-        discounted = np.zeros_like(scores, dtype=float)
+        discounted = np.zeros_like(scores, dtype=np.float32)
         for t in reversed(range(0, len(scores))):
             cum_r = scores[t] + self.gamma * cum_r
             discounted[t] = cum_r
         return discounted
+    
+    def save_model(self, model_name: str = None):
+        """Save the current model in the 'models' folder found under root."""
+        if self.model_v == 0: return  # Unversioned models aren't saved/loaded
+        self.model.save(f"models/dql/{model_name if model_name else f'model_{self.model_v}'}")
+    
+    def load_model(self, model_name: str = None):
+        """Load the model, return boolean indicating if model loaded successfully or not."""
+        if self.model_v == 0: return False  # Unversioned models aren't saved/loaded
+        if not model_name: model_name = f"model_{self.model_v}"
+        try:
+            self.model = tf.keras.models.load_model(f"models/dql/{model_name}")
+            self.model.summary()
+            return True
+        except OSError:
+            return False

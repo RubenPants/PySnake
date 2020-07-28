@@ -20,8 +20,8 @@ class Game:
     
     def __init__(self,
                  msg_tag: str,
-                 width=10,
-                 height=10,
+                 width=20,
+                 height=20,
                  pixels=20,
                  ):
         """
@@ -70,12 +70,12 @@ class Game:
             if self.snake.step(apple=self.apple.pos):
                 self.apple.new_location()
                 self.score += 1
+            
+            # Update the board
+            self.update_board()
+            return True
         except PositionException:
             return False
-        
-        # Update the board
-        self.update_board()
-        return True
     
     def reset(self):
         """Reset the game environment."""
