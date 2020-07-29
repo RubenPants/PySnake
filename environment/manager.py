@@ -22,7 +22,8 @@ class Manager:
         self.max_steps = max_steps if max_steps else float("inf")
     
     def train_batch(self, iterations: int = 1000):
-        for _ in range(iterations):
+        for i in range(iterations):
+            print(f"==> Training iteration {i + 1}")
             scores = self.train()
             print(min(scores), "-", sum(scores) / len(scores), "-", max(scores))  # TODO: Remove!
     

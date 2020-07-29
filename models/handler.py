@@ -27,16 +27,16 @@ def get_mlp(input_dim):
     """
     model = tf.keras.Sequential()
     model.add(tf.keras.layers.Flatten(input_shape=input_dim))
-    model.add(tf.keras.layers.Dense(32,
+    model.add(tf.keras.layers.Dense(64,
                                     activation='relu',
                                     name='Start'))
-    model.add(tf.keras.layers.Dense(32,
+    model.add(tf.keras.layers.Dense(64,
                                     activation='relu',
                                     name='Intermediate'))
     model.add(tf.keras.layers.Dense(3,
                                     activation='sigmoid',  # Multi-class regression
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['acc'])
+    model.compile(loss='mse', optimizer='adam')
     return model
 
 
@@ -54,7 +54,7 @@ def get_cnn(input_dim):
                                      activation='relu',
                                      name='Conv2D_1'))
     model.add(tf.keras.layers.Conv2D(filters=32,
-                                     kernel_size=2,  # Larger kernel, wider 'viewing angles'
+                                     kernel_size=2,
                                      activation='relu',
                                      name='Conv2D_2'))
     model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2),
@@ -66,7 +66,7 @@ def get_cnn(input_dim):
     model.add(tf.keras.layers.Dense(3,
                                     activation='sigmoid',  # Multi-class regression
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['acc'])
+    model.compile(loss='mse', optimizer='adam')
     return model
 
 
@@ -89,5 +89,5 @@ def get_rnn(input_dim):
     model.add(tf.keras.layers.Dense(3,
                                     activation='sigmoid',  # Multi-class regression
                                     name='Output'))
-    model.compile(loss='mse', optimizer='adam', metrics=['acc'])
+    model.compile(loss='mse', optimizer='adam')
     return model

@@ -3,7 +3,7 @@ messenger.py
 
 Create messages as interaction between agent and environment.
 """
-from environment.transformers import transformFirstPerson, transformFlat
+from environment.transformers import transformFirstPerson
 from utils.exceptions import MessengerException
 
 M_APPLE = 'apple'
@@ -12,17 +12,15 @@ M_BODY = 'body'
 M_DATA = 'data'
 M_DIM = 'dimensions'
 M_DIR = 'direction'
-M_FLAT = 'flat'
 M_RAW = 'raw'
 M_RELATIVE = 'relative'
 M_SCORE = 'score'
-MESSENGERS = [M_RAW, M_RELATIVE, M_FLAT, M_DATA]
+MESSENGERS = [M_RAW, M_RELATIVE, M_DATA]
 
 
 def create_message(tag, game):
     if tag == M_RAW: return get_raw(game)
     if tag == M_RELATIVE: return get_relative(game)
-    if tag == M_FLAT: return get_flat(game)
     if tag == M_DATA: return get_data(game)
     raise MessengerException("Messenger type not supported")
 
@@ -38,16 +36,9 @@ def get_raw(game):
 
 def get_relative(game):
     msg = {
-        M_BOARD: transformFirstPerson(game.board, game.snake.body[0], game.snake.direction).tolist(),
-        M_DIM:   (game.width, game.height),
-        M_SCORE: game.score,
-    }
-    return msg
-
-
-def get_flat(game):
-    msg = {
-        M_BOARD: transformFlat(game.board).tolist(),
+        M_BOARD: transformFirstPerson(board=game.board,
+                                      head_pos=game.snake.body[0],
+                                      head_dir=game.snake.direction).tolist(),
         M_DIM:   (game.width, game.height),
         M_SCORE: game.score,
     }

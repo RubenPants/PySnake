@@ -20,8 +20,8 @@ class Game:
     
     def __init__(self,
                  msg_tag: str,
-                 width=20,
-                 height=20,
+                 width=11,
+                 height=11,
                  pixels=20,
                  ):
         """
@@ -32,8 +32,8 @@ class Game:
         :param pixels: Number of pixels for each tile of the game
         :param msg_tag: Tag indicating type of messenger to be used to communicate game-state to agent
         """
-        self.width = width
-        self.height = height
+        self.width = width if width % 2 == 1 else width + 1  # Always odd
+        self.height = height if height % 2 == 1 else height + 1  # Always odd
         self.pixels = pixels
         self.msg_tag = msg_tag
         self.score = 0
@@ -69,12 +69,13 @@ class Game:
         try:
             if self.snake.step(apple=self.apple.pos):
                 self.apple.new_location()
-                self.score += 1
+                self.score += 1  # Reward for eating apple
             
             # Update the board
             self.update_board()
             return True
         except PositionException:
+            self.score -= 1  # Punish for hitting into a wall
             return False
     
     def reset(self):

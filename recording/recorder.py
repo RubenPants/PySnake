@@ -10,7 +10,7 @@ import numpy as np
 
 from agents.a_star import AStar
 from environment.game import Game
-from environment.messenger import M_BOARD, M_FLAT, M_RELATIVE
+from environment.messenger import M_BOARD, M_RAW, M_RELATIVE
 
 
 def record_a_star():
@@ -21,7 +21,7 @@ def record_a_star():
     
     # Containers for the recordings
     states_relative_mem = []
-    states_flat_mem = []
+    states_raw_mem = []
     actions_mem = []
     d_scores_mem = []
     
@@ -41,7 +41,7 @@ def record_a_star():
         
         # Store current state
         states_relative_mem.append([game.get_msg(tag=M_RELATIVE)[M_BOARD]])
-        states_flat_mem.append([game.get_msg(tag=M_FLAT)[M_BOARD]])
+        states_raw_mem.append([game.get_msg(tag=M_RAW)[M_BOARD]])
         actions_mem.append([action])
         
         # Progress the game
@@ -56,12 +56,48 @@ def record_a_star():
     
     # Store all the memorised data
     save_recording(
-            actions=actions_mem,
+            s_raw=states_raw_mem,
             s_relative=states_relative_mem,
-            s_flat=states_flat_mem,
+            actions=actions_mem,
             scores=d_scores_mem,
             duration=[duration],
     )
+
+
+def show_recording(path):
+    """Show a certain recording."""
+    # Fetch data
+    data = load_recording(path=path)
+    states = data['states_raw_mem']
+    actions = data['actions_mem']
+    scores = data['d_scores_mem']
+    duration = data['duration'][0]
+    
+    # Show the current board
+    def print_board(state):
+        """Stolen from game's show_board()."""
+        width = len(state[0])
+        height = len(state)
+        for row in reversed(range(width)):
+            for col in range(height):
+                if state[col, row] == -1:
+                    print(" # ", end="")
+                elif state[col, row] == 1:
+                    print(" o ", end="")
+                else:
+                    print("   ", end="")
+            print()
+        print("---" * width)
+    
+    # Iterate over the simulation
+    step = 0
+    while step < duration:
+        print_board(states[step, 0])
+        a = actions[step][0]
+        print(f"-> With action '{'straight' if a == 0 else 'left' if a == 1 else 'right'}'")
+        print(f"-> Leads to score {scores[step][0]}")
+        input("--> Press enter to continue")
+        step += 1
 
 
 def record_manual():
@@ -69,11 +105,11 @@ def record_manual():
     raise NotImplementedError  # TODO: Implement
 
 
-def save_recording(actions, s_relative, s_flat, scores, duration):
+def save_recording(actions, s_raw, s_relative, scores, duration):
     """Add the recording to the list of recordings."""
     data = {
+        'states_raw_mem':      s_raw,
         'states_relative_mem': s_relative,
-        'states_flat_mem':     s_flat,
         'actions_mem':         actions,
         'd_scores_mem':        scores,
         'duration':            duration,
@@ -88,8 +124,8 @@ def load_recording(path):
     """Unfold the requested recording to the states, actions, and delta scores."""
     with open(path, 'r') as f:
         data = json.load(f)
+        data['states_raw_mem'] = np.asarray(data['states_raw_mem'])
         data['states_relative_mem'] = np.asarray(data['states_relative_mem'])
-        data['states_flat_mem'] = np.asarray(data['states_flat_mem'])
     return data
 
 

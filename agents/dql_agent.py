@@ -10,8 +10,8 @@ import numpy as np
 import tensorflow as tf
 
 from agents.base import Agent
-from environment.messenger import M_BOARD, M_FLAT, M_RELATIVE, M_SCORE
-from models.handler import CNN, create_model
+from environment.messenger import M_BOARD, M_RELATIVE, M_SCORE
+from models.handler import create_model
 from recording.recorder import get_all_recordings, load_recording
 from utils.timing import drop, prep
 
@@ -31,12 +31,11 @@ class DeepQLearning(Agent):
                  model_v: int = 0,
                  training: bool = True,
                  gamma: float = 0.9,
-                 lr: float = 0.1,
-                 eps_decay: float = 0.95,
+                 lr: float = 0.05,
+                 eps_decay: float = 0.99,
                  eps_max: float = 0.4,
                  eps_min: float = 0.1):
-        m_type = M_RELATIVE if model_type == CNN else M_FLAT
-        super().__init__(message_tag=m_type, training=training)
+        super().__init__(message_tag=M_RELATIVE, training=training)
         self.model = None  # Policy used to query actions given a state
         self.model_t = model_type  # Type of policy used (mlp, cnn, rnn)
         self.model_v = model_v  # Version number of the model, 0 is non-versioned
@@ -80,6 +79,19 @@ class DeepQLearning(Agent):
         """Query for actions, do not memorise seen states. Only used for evaluation."""
         # Fetch all the states from the given messages
         states = np.asarray([m[M_BOARD] for m in msgs])
+        state = states[0]
+        width = len(state[0])
+        height = len(state)
+        for row in reversed(range(width)):
+            for col in range(height):
+                if state[col, row] == -1:
+                    print(" # ", end="")
+                elif state[col, row] == 1:
+                    print(" o ", end="")
+                else:
+                    print("   ", end="")
+            print()
+        print("---" * width)
         
         # Fetch the actions using the model
         predictions = self.model.predict(states)
@@ -125,10 +137,7 @@ class DeepQLearning(Agent):
         for recording_path in get_all_recordings():
             # Load in the data properly
             data = load_recording(recording_path)
-            if self.m_tag == M_FLAT:
-                self.states_mem = data['states_flat_mem']
-            else:
-                self.states_mem = data['states_relative_mem']
+            self.states_mem = data['states_relative_mem']
             self.actions_mem = data['actions_mem']
             self.d_scores_mem = data['d_scores_mem']
             
@@ -136,15 +145,16 @@ class DeepQLearning(Agent):
             if not self.model and not self.load_model(): self.create_model(self.states_mem[0].shape)
             
             # Train the model
-            self.train(duration=data['duration'], epochs=epochs)
+            self.train(duration=data['duration'], epochs=epochs, score_adj=False)
     
-    def train(self, duration, epochs: int = 1):
+    def train(self, duration, epochs: int = 1, score_adj: bool = True):
         """
         Train the model with the memorised data. Each game is trained sequentially since length of states doesn't
         necessarily coincide.
         
         :param duration: Indicates duration of each simulation
         :param epochs: Number of training epochs
+        :param score_adj: Adjust the score (shift to right) to match (state, action) pairs
         """
         assert self.states_mem is not None and self.actions_mem is not None and self.d_scores_mem is not None
         assert len(self.states_mem) == len(self.actions_mem) == len(self.d_scores_mem)
@@ -157,14 +167,13 @@ class DeepQLearning(Agent):
         q_values = []  # Desired (updated) outputs of the model
         for i_env, d in enumerate(duration):
             last_state = self.states_mem[d - 1][i_env]
-            scores = [s[i_env] for s in self.d_scores_mem[1:d]]
-            if d == max(duration):
-                if sum(scores) == 0:
-                    scores.append(-1)  # No apples found in lifetime (likely in infinite loop); punish
+            scores = [s[i_env] for s in self.d_scores_mem[:d]]
+            if score_adj:
+                scores = scores[1:]
+                if d == max(duration) and sum(scores) > 0:  # Never died and found at least one apple in its lifetime
+                    scores.append(0)
                 else:
-                    scores.append(0)  # Game externally terminated
-            else:
-                scores.append(-1)  # Last action was invalid move; punish
+                    scores.append(-1)  # Last action was invalid move; punish
             
             # Discount the scores
             discounted_scores = self.discount(scores, last_state)
@@ -175,14 +184,13 @@ class DeepQLearning(Agent):
                 
                 # Fetch the Q-value for the given state
                 q_value = self.model.predict(states[-1].reshape((1,) + states[-1].shape))
-                assert min(q_value[0]) > 0
                 
                 # Decay the Q-values with the learning rate
                 q_value *= (1 - self.lr)
                 
                 # Increase the action-chosen Q-value with discounted_score * lr
-                q_value[0][self.actions_mem[t][i_env]] += self.lr * discounted_scores[t]
-                q_value[0][self.actions_mem[t][i_env]] = max(q_value[0][self.actions_mem[t][i_env]], 0)
+                q = q_value[0][self.actions_mem[t][i_env]]
+                q_value[0][self.actions_mem[t][i_env]] = min(max(q + self.lr * discounted_scores[t], 0), 1)
                 q_values.append(q_value)
             assert len(states) == len(q_values)
         
