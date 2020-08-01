@@ -6,55 +6,52 @@ Adaptation of the A* algorithm.
 from math import sqrt
 
 from agents.base import Agent
-from environment.messenger import M_APPLE, M_BODY, M_DATA, M_DIM, M_DIR, M_SCORE
 from utils.direction import DIR, turn_left, turn_right
 
 
 class AStar(Agent):
     """Adaptation of the A* algorithm."""
-
+    
     __slots__ = {
-        'training', 'm_tag', 'last_score',
+        'training', 'last_score',
         'refresh_rate', 'recalculate', 'path_remainder'
     }
     
     def __init__(self, refresh_rate=10):
-        super().__init__(message_tag=M_DATA)
+        super().__init__()
         self.refresh_rate = refresh_rate  # Number of steps before recalculation
         self.recalculate = None  # Timer until recalculation
         self.path_remainder = None
     
-    def __call__(self, msgs):
+    def __call__(self, games):
         """
         Define the 'most suitable action' (as defined by the policy) for each of the games.
         
-        :param msgs: List of messages sent by requested messenger
+        :param games: List of games, each in a certain state
         :return: List of actions, where each action is either 0 (straight), 1 (left), or 2 (right)
         """
         if self.recalculate is None: raise Exception("Initialise first via 'reset'")
         
         # Loop over all the inputs to decide on each corresponding action
         actions = []
-        for i in range(len(msgs)):
+        for i in range(len(games)):
             # Parse message of requested game
-            msg = msgs[i]
+            game = games[i]
             
             # Previous apple was eaten, reset
-            if msg[M_SCORE] > self.last_score[i]:
-                self.last_score[i] = msg[M_SCORE]
+            if game.score > self.last_score[i]:
+                self.last_score[i] = game.score
                 self.recalculate[i] = 0
             
             # Recalculate a new path
-            body = msg[M_BODY]
+            body = game.snake.body
             start = body[0]
             if self.recalculate[i] <= 0:
                 self.recalculate[i] = self.refresh_rate
-                goal = msg[M_APPLE]
-                dim = msg[M_DIM]
                 try:
-                    self.path_remainder[i] = a_star(start=start, goal=goal, dim=dim, body=body)
+                    self.path_remainder[i] = a_star(start=start, goal=game.apple, dim=game.dim, body=body)
                 except ValueError:  # If no path is found, get random neighbour
-                    neighbours = get_neighbours(pos=start, goal=goal, dim=dim, body=body)
+                    neighbours = get_neighbours(pos=start, goal=game.apple, dim=game.dim, body=body)
                     self.recalculate[i] = 0
                     if len(neighbours) == 0:  # We dead..
                         actions.append(0)
@@ -68,8 +65,8 @@ class AStar(Agent):
                 continue
             next_pos = self.path_remainder[i][0]
             action = 0  # Straight by default
-            if (start + turn_left(msg[M_DIR])) == next_pos: action = 1  # Turn left
-            if (start + turn_right(msg[M_DIR])) == next_pos: action = 2  # Turn right
+            if (start + turn_left(game.snake.direction)) == next_pos: action = 1  # Turn left
+            if (start + turn_right(game.snake.direction)) == next_pos: action = 2  # Turn right
             
             # Progress one step internally
             self.path_remainder[i] = self.path_remainder[i][1:]
@@ -77,8 +74,8 @@ class AStar(Agent):
             actions.append(action)
         return actions
     
-    def reset(self, n_envs, sample_msg):
-        super().reset(n_envs=n_envs, sample_msg=sample_msg)
+    def reset(self, n_envs, sample_game):
+        super().reset(n_envs=n_envs, sample_game=sample_game)
         self.recalculate = [0] * n_envs
         self.path_remainder = [[], ] * n_envs
 

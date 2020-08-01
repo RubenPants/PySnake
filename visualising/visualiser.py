@@ -17,7 +17,7 @@ from utils.gen_int import IntegerGenerator
 
 def live_visualisation(agent: Agent = Empty(), game: Game = None):
     """Visualise the performance of the given agent."""
-    if not game: game = Game(msg_tag=agent.m_tag)
+    if not game: game = Game()
     
     # Regularly used constants
     width = game.width * game.pixels
@@ -63,17 +63,18 @@ def live_visualisation(agent: Agent = Empty(), game: Game = None):
         draw_segment((i, game.height - 1), color=(0, 0, 0))
     
     # Draw the apple
-    draw_segment(game.apple.pos, i=-1, color=(128, 0, 0))
+    draw_segment(game.apple, i=-1, color=(128, 0, 0))
     
     # Create the Snake instance
     snake_i = IntegerGenerator()  # Iterator for the snake segments
     agent.training = False
-    agent.reset(n_envs=1, sample_msg=game.get_msg())
+    agent.reset(n_envs=1, sample_game=game)
     
     def draw_snake(init=False):
         """Draw the snake."""
         if init:
-            for i, p in enumerate(reversed(game.snake.body)): draw_segment(p, i=snake_i())
+            for p in reversed(game.snake.body):
+                draw_segment(p, i=snake_i())
         else:
             draw_segment(game.snake.body[0], i=snake_i())
     
@@ -104,7 +105,7 @@ def live_visualisation(agent: Agent = Empty(), game: Game = None):
     def update_method(dt):
         """Update the game environment."""
         # Query brain to get action for current state
-        a = agent([game.get_msg()])[0]
+        a = agent([game])[0]
         
         # Progress the game
         score_pre = game.score
@@ -118,7 +119,7 @@ def live_visualisation(agent: Agent = Empty(), game: Game = None):
             if hasattr(shape, 'id') and shape.id <= len(snake_i) - (game.snake.length - 1):
                 if eaten:
                     space.remove(shape.body, shape)
-                    draw_segment(game.apple.pos, i=-1, color=(128, 0, 0))
+                    draw_segment(game.apple, i=-1, color=(128, 0, 0))
                 elif shape.id >= 0:
                     space.remove(shape.body, shape)
         

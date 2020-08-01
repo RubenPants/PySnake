@@ -3,23 +3,23 @@ game.py
 
 Create a game instance which acts as a container for all the other elements (snake, apple).
 """
+from random import randrange
+
 import numpy as np
 
-from environment.apple import Apple
-from environment.messenger import create_message
 from environment.snake import Snake
-from utils.direction import turn_left, turn_right
+from utils.direction import DOWN, LEFT, RIGHT, turn_left, turn_right
 from utils.exceptions import PositionException
+from utils.pos import Pos
 
 
 class Game:
     __slots__ = {
-        'width', 'height', 'pixels', 'msg_tag', 'score', 'steps',
+        'width', 'height', 'dim', 'pixels', 'score', 'steps',
         'snake', 'apple', 'board'
     }
     
     def __init__(self,
-                 msg_tag: str,
                  width=11,
                  height=11,
                  pixels=20,
@@ -30,12 +30,11 @@ class Game:
         :param width: Width of the playing field
         :param height: Height of the playing field
         :param pixels: Number of pixels for each tile of the game
-        :param msg_tag: Tag indicating type of messenger to be used to communicate game-state to agent
         """
         self.width = width if width % 2 == 1 else width + 1  # Always odd
         self.height = height if height % 2 == 1 else height + 1  # Always odd
+        self.dim = (self.width, self.height)
         self.pixels = pixels
-        self.msg_tag = msg_tag
         self.score = 0
         self.steps = 0
         
@@ -43,16 +42,13 @@ class Game:
         self.snake = Snake(game=self)
         
         # Initialise the apple
-        self.apple = Apple(game=self)
+        self.apple = None
+        self.set_apple_pos()
         
         # Initialise the board
         self.board = self.create_board()
     
     # ----------------------------------------------------> MAIN <---------------------------------------------------- #
-    
-    def get_msg(self, tag: str = None):
-        """Get a message of the current game state."""
-        return create_message(tag=tag if tag else self.msg_tag, game=self)
     
     def step(self, a):
         """
@@ -67,8 +63,8 @@ class Game:
         
         # Update snake position
         try:
-            if self.snake.step(apple=self.apple.pos):
-                self.apple.new_location()
+            if self.snake.step(apple=self.apple):
+                self.set_apple_pos()
                 self.score += 1  # Reward for eating apple
             
             # Update the board
@@ -84,7 +80,7 @@ class Game:
         self.steps = 0
         self.clear_board()
         self.snake = Snake(game=self)
-        self.apple = Apple(game=self)
+        self.set_apple_pos()
     
     # ----------------------------------------------------> BOARD <--------------------------------------------------- #
     
@@ -100,7 +96,7 @@ class Game:
         
         # Add snake and apple
         for p in self.snake.body: board[p.x, p.y] = -1
-        board[self.apple.pos.x, self.apple.pos.y] = 1
+        board[self.apple.x, self.apple.y] = 1
         return board
     
     def clear_board(self):
@@ -111,7 +107,7 @@ class Game:
         """Update the position of the snake and apple."""
         self.clear_board()
         for p in self.snake.body: self.board[p.x, p.y] = -1
-        self.board[self.apple.pos.x, self.apple.pos.y] = 1
+        self.board[self.apple.x, self.apple.y] = 1
     
     def show_board(self):
         """Print out the board."""
@@ -125,3 +121,34 @@ class Game:
                     print("   ", end="")
             print()
         print("---" * self.width)
+    
+    def get_board_relative(self):
+        """Transform the board position to first person viewing."""
+        # Get board dimensions
+        width = len(self.board)
+        height = len(self.board[0])
+        
+        # Center board
+        delta_width = int(width / 2) - self.snake.body[0][0]
+        delta_height = int(height / 2) - self.snake.body[0][1]
+        board = np.roll(self.board, delta_width, axis=0)
+        board = np.roll(board, delta_height, axis=1)
+        
+        # Rotate board
+        if self.snake.direction == RIGHT: board = np.rot90(board, 1)
+        if self.snake.direction == DOWN: board = np.rot90(board, 2)
+        if self.snake.direction == LEFT: board = np.rot90(board, 3)
+        return board.reshape(board.shape + (1,))  # shape = (height, width, depth)
+    
+    def get_board_raw(self):
+        """Return the game's board in raw form."""
+        return self.board.reshape(self.board.shape + (1,))
+    
+    # ----------------------------------------------------> APPLE <--------------------------------------------------- #
+    
+    def set_apple_pos(self):
+        """Get random free location in the game."""
+        self.apple = None
+        while not self.apple or self.apple in self.snake.body:
+            self.apple = Pos(x=randrange(1, self.width - 1),
+                             y=randrange(1, self.height - 1))

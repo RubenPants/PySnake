@@ -4,7 +4,6 @@ empty.py
 Empty agent, only going straight.
 """
 from agents.base import Agent
-from environment.messenger import M_RAW
 
 
 class Empty(Agent):
@@ -13,7 +12,7 @@ class Empty(Agent):
     }
     
     def __init__(self):
-        super().__init__(message_tag=M_RAW)  # Dummy messenger
+        super().__init__()  # Dummy messenger
     
     def __call__(self, _):
         """Always drives straight."""

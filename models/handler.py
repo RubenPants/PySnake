@@ -26,7 +26,8 @@ def get_mlp(input_dim):
     :return: MLP
     """
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Flatten(input_shape=input_dim))
+    model.add(tf.keras.layers.Input(input_dim))
+    model.add(tf.keras.layers.Flatten())
     model.add(tf.keras.layers.Dense(64,
                                     activation='relu',
                                     name='Start'))

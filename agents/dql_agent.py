@@ -10,9 +10,7 @@ import numpy as np
 import tensorflow as tf
 
 from agents.base import Agent
-from environment.messenger import M_BOARD, M_RELATIVE, M_SCORE
 from models.handler import create_model
-from recording.recorder import get_all_recordings, load_recording
 from utils.timing import drop, prep
 
 
@@ -33,9 +31,9 @@ class DeepQLearning(Agent):
                  gamma: float = 0.9,
                  lr: float = 0.05,
                  eps_decay: float = 0.99,
-                 eps_max: float = 0.4,
+                 eps_max: float = 0.2,
                  eps_min: float = 0.1):
-        super().__init__(message_tag=M_RELATIVE, training=training)
+        super().__init__(training=training)
         self.model = None  # Policy used to query actions given a state
         self.model_t = model_type  # Type of policy used (mlp, cnn, rnn)
         self.model_v = model_v  # Version number of the model, 0 is non-versioned
@@ -53,45 +51,45 @@ class DeepQLearning(Agent):
         self.eps_max: float = eps_max  # Maximum value of the randomisation epsilon
         self.eps_min: float = eps_min  # Minimum value of the randomisation epsilon
     
-    def __call__(self, msgs):
+    def __call__(self, games):
         """
         Define the 'most suitable action' (as defined by the policy) for each of the games.
         
-        :param msgs: List of messages sent by requested messenger
+        :param games: List of games, each in a certain state
         :return: List of actions, where each action is either 0 (straight), 1 (left), or 2 (right)
         """
         if self.model is None: raise Exception("Initialise first via 'reset'")
         
         if self.training:
-            return self.query_and_remember(msgs=msgs)
+            return self.query_and_remember(games=games)
         else:
-            return self.query(msgs=msgs)
+            return self.query(games=games)
     
-    def reset(self, n_envs, sample_msg):
-        super().reset(n_envs=n_envs, sample_msg=sample_msg)
-        if not self.model and not self.load_model(): self.create_model(np.asarray(sample_msg[M_BOARD]).shape)
+    def reset(self, n_envs, sample_game):
+        super().reset(n_envs=n_envs, sample_game=sample_game)
+        if not self.model and not self.load_model(): self.create_model(sample_game.get_board_relative().shape)
         self.eps = self.eps_max
         self.states_mem = []
         self.actions_mem = []
         self.d_scores_mem = []
     
-    def query(self, msgs):
+    def query(self, games):
         """Query for actions, do not memorise seen states. Only used for evaluation."""
         # Fetch all the states from the given messages
-        states = np.asarray([m[M_BOARD] for m in msgs])
-        state = states[0]
-        width = len(state[0])
-        height = len(state)
-        for row in reversed(range(width)):
-            for col in range(height):
-                if state[col, row] == -1:
-                    print(" # ", end="")
-                elif state[col, row] == 1:
-                    print(" o ", end="")
-                else:
-                    print("   ", end="")
-            print()
-        print("---" * width)
+        states = np.asarray([g.get_board_relative() for g in games])
+        # state = states[0]  # TODO: Remove
+        # width = len(state[0])
+        # height = len(state)
+        # for row in reversed(range(width)):
+        #     for col in range(height):
+        #         if state[col, row, 0] == -1:
+        #             print(" # ", end="")
+        #         elif state[col, row, 0] == 1:
+        #             print(" o ", end="")
+        #         else:
+        #             print("   ", end="")
+        #     print()
+        # print("---" * width)
         
         # Fetch the actions using the model
         predictions = self.model.predict(states)
@@ -99,14 +97,14 @@ class DeepQLearning(Agent):
         # Parse actions from predictions (choose most likely actions)
         return [np.argmax(p) for p in predictions]
     
-    def query_and_remember(self, msgs):
+    def query_and_remember(self, games):
         """Query for actions and remember both states and actions to use them as training data later on."""
         # Fetch all the states from the given messages
-        states = np.asarray([m[M_BOARD] for m in msgs])
+        states = np.asarray([g.get_board_relative() for g in games])
         self.states_mem.append(states)
         
         # Fetch received scores
-        scores = np.asarray([m[M_SCORE] for m in msgs])
+        scores = np.asarray([g.score for g in games])
         d_scores = [scores[i] - self.last_score[i] for i in range(len(scores))]
         self.last_score = scores
         self.d_scores_mem.append(d_scores)
@@ -128,24 +126,24 @@ class DeepQLearning(Agent):
         self.model = create_model(model_tag=self.model_t, input_dim=input_dim)
         self.model.summary()
     
-    def pre_train(self, epochs: int = 1):
-        """
-        Pre-train the model using recordings.
-        
-        :param epochs: Number of training epochs for each recording
-        """
-        for recording_path in get_all_recordings():
-            # Load in the data properly
-            data = load_recording(recording_path)
-            self.states_mem = data['states_relative_mem']
-            self.actions_mem = data['actions_mem']
-            self.d_scores_mem = data['d_scores_mem']
-            
-            # Check if a model already exists
-            if not self.model and not self.load_model(): self.create_model(self.states_mem[0].shape)
-            
-            # Train the model
-            self.train(duration=data['duration'], epochs=epochs, score_adj=False)
+    # def pre_train(self, epochs: int = 1):  TODO: Fix recorder first
+    #     """
+    #     Pre-train the model using recordings.
+    #
+    #     :param epochs: Number of training epochs for each recording
+    #     """
+    #     for recording_path in get_all_recordings():
+    #         # Load in the data properly
+    #         data = load_recording(recording_path)
+    #         self.states_mem = data['states_relative_mem']
+    #         self.actions_mem = data['actions_mem']
+    #         self.d_scores_mem = data['d_scores_mem']
+    #
+    #         # Check if a model already exists
+    #         if not self.model and not self.load_model(): self.create_model(self.states_mem[0, 0].shape)
+    #
+    #         # Train the model
+    #         self.train(duration=data['duration'], epochs=epochs, score_adj=False)
     
     def train(self, duration, epochs: int = 1, score_adj: bool = True):
         """
@@ -198,7 +196,7 @@ class DeepQLearning(Agent):
         self.model.fit(
                 x=np.asarray(states),  # TODO: Add callback to TensorBoard
                 y=np.asarray(q_values),
-                batch_size=16,
+                # batch_size=16,
                 epochs=epochs,
         )
         drop(key='dql')
@@ -208,7 +206,7 @@ class DeepQLearning(Agent):
     def discount(self, scores, last_state):
         """Discount the received rewards."""
         # The initial cumulative reward will be the discounted maximal Q-value of the current (last) state
-        cum_r = self.gamma * np.max(self.model.predict(last_state.reshape((1,) + last_state.shape)))
+        cum_r = self.gamma * np.max(self.model.predict(last_state.reshape((1,) + last_state.shape)))  # Batch-size=1
         
         # Discount all the rewards in reverse order (for efficiency)
         discounted = np.zeros_like(scores, dtype=np.float32)

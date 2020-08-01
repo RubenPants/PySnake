@@ -6,7 +6,6 @@ Random agent, choose one of the three possible actions at random.
 from random import choice
 
 from agents.base import Agent
-from environment.messenger import M_RAW
 
 
 class Random(Agent):
@@ -15,7 +14,7 @@ class Random(Agent):
     }
     
     def __init__(self):
-        super().__init__(message_tag=M_RAW)  # Dummy messenger
+        super().__init__()  # Dummy messenger
     
     def __call__(self, _):
         """Always drives straight."""
