@@ -9,6 +9,7 @@ from glob import glob
 import numpy as np
 
 from agents.a_star import AStar
+from agents.random import Random
 from environment.game import Game
 from environment.messenger import M_BOARD, M_RAW, M_RELATIVE
 
@@ -56,6 +57,59 @@ def record_a_star():
     
     # Store all the memorised data
     save_recording(
+            pre="a_star",
+            s_raw=states_raw_mem,
+            s_relative=states_relative_mem,
+            actions=actions_mem,
+            scores=d_scores_mem,
+            duration=[duration],
+    )
+
+
+def record_random():
+    """Record a game where the agent is controlled by a random algorithm."""
+    # Necessary entities
+    agent = Random()
+    game = Game(msg_tag=agent.m_tag)
+    
+    # Containers for the recordings
+    states_relative_mem = []
+    states_raw_mem = []
+    actions_mem = []
+    d_scores_mem = []
+    
+    # Reset the agent
+    agent.reset(n_envs=1, sample_msg=game.get_msg())
+    score = 0
+    
+    # Get the initial state
+    state = game.get_msg()
+    
+    # Run the game
+    finished = False
+    duration = 0
+    while not finished:
+        duration += 1
+        action = agent([state])[0]
+        
+        # Store current state
+        states_relative_mem.append([game.get_msg(tag=M_RELATIVE)[M_BOARD]])
+        states_raw_mem.append([game.get_msg(tag=M_RAW)[M_BOARD]])
+        actions_mem.append([action])
+        
+        # Progress the game
+        finished = not game.step(a=action)
+        
+        # Update the score
+        d_scores_mem.append([game.score - score])
+        score = game.score
+        
+        # Update the state
+        state = game.get_msg()
+    
+    # Store all the memorised data
+    save_recording(
+            pre="random",
             s_raw=states_raw_mem,
             s_relative=states_relative_mem,
             actions=actions_mem,
@@ -105,7 +159,7 @@ def record_manual():
     raise NotImplementedError  # TODO: Implement
 
 
-def save_recording(actions, s_raw, s_relative, scores, duration):
+def save_recording(pre, actions, s_raw, s_relative, scores, duration):
     """Add the recording to the list of recordings."""
     data = {
         'states_raw_mem':      s_raw,
@@ -115,7 +169,7 @@ def save_recording(actions, s_raw, s_relative, scores, duration):
         'duration':            duration,
     }
     n = len(glob("recording/data/a_star*"))
-    with open(f'recording/data/a_star_{n + 1}.json', 'w') as f:
+    with open(f'recording/data/{pre}_{n + 1}.json', 'w') as f:
         json.dump(data, f, indent=2)
     print(f"Saved record {n + 1}")
 
@@ -136,6 +190,6 @@ def get_all_recordings():
     recordings += glob("recording/data/a_star*")
     
     # Load all manual recordings
-    # TODO: Create manual recordings first
+    recordings += glob("recording/data/random*")
     
     return recordings

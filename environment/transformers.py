@@ -31,4 +31,4 @@ def transformFirstPerson(board, head_pos, head_dir):
     if head_dir == RIGHT: board = np.rot90(board, 1)
     if head_dir == DOWN: board = np.rot90(board, 2)
     if head_dir == LEFT: board = np.rot90(board, 3)
-    return board.reshape(board.shape + (1,))
+    return board.reshape((1,) + board.shape)

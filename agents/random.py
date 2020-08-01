@@ -1,13 +1,15 @@
 """
-empty.py
+random.py
 
-Empty agent, only going straight.
+Random agent, choose one of the three possible actions at random.
 """
+from random import choice
+
 from agents.base import Agent
 from environment.messenger import M_RAW
 
 
-class Empty(Agent):
+class Random(Agent):
     __slots__ = {
         'training', 'm_tag', 'last_score',
     }
@@ -17,4 +19,4 @@ class Empty(Agent):
     
     def __call__(self, _):
         """Always drives straight."""
-        return [0]
+        return choice([[0], [1], [2]])
