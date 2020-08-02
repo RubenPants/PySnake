@@ -32,7 +32,7 @@ class DeepQLearning(Agent):
                  gamma: float = 0.8,
                  lr: float = 0.01,
                  eps_decay: float = 0.99,
-                 eps_max: float = 0.2,
+                 eps_max: float = 0.4,
                  eps_min: float = 0.1):
         super().__init__(training=training)
         self.model = None  # Policy used to query actions given a state
@@ -51,6 +51,18 @@ class DeepQLearning(Agent):
         self.eps_decay: float = eps_decay  # Decaying factor of the randomisation epsilon
         self.eps_max: float = eps_max  # Maximum value of the randomisation epsilon
         self.eps_min: float = eps_min  # Minimum value of the randomisation epsilon
+        
+    def __str__(self):
+        return f"DeepQLearning(\n" \
+               f"\tmodel-version={self.model_v}\n" \
+               f"\tmodel-type={self.model_t}\n" \
+               f"\tgamma={self.gamma}\n" \
+               f"\tlearning rate={self.lr}\n" \
+               f"\tepsilon={self.eps}\n" \
+               f"\tmax(epsilon)={self.eps_max}\n" \
+               f"\tmin(epsilon)={self.eps_min}\n" \
+               f"\tdecay(epsilon)={self.eps_decay}\n" \
+               f")"
     
     def __call__(self, games):
         """
@@ -78,19 +90,6 @@ class DeepQLearning(Agent):
         """Query for actions, do not memorise seen states. Only used for evaluation."""
         # Fetch all the states from the given messages
         states = np.asarray([g.get_board_relative() for g in games])
-        # state = states[0]  # TODO: Remove
-        # width = len(state[0])
-        # height = len(state)
-        # for row in reversed(range(width)):
-        #     for col in range(height):
-        #         if state[col, row, 0] == -1:
-        #             print(" # ", end="")
-        #         elif state[col, row, 0] == 1:
-        #             print(" o ", end="")
-        #         else:
-        #             print("   ", end="")
-        #     print()
-        # print("---" * width)
         
         # Fetch the actions using the model
         predictions = self.model.predict(states)
@@ -136,25 +135,6 @@ class DeepQLearning(Agent):
         self.model = create_model(model_tag=self.model_t, input_dim=input_dim)
         self.model.summary()
     
-    # def pre_train(self, epochs: int = 1):  TODO: Fix recorder first
-    #     """
-    #     Pre-train the model using recordings.
-    #
-    #     :param epochs: Number of training epochs for each recording
-    #     """
-    #     for recording_path in get_all_recordings():
-    #         # Load in the data properly
-    #         data = load_recording(recording_path)
-    #         self.states_mem = data['states_relative_mem']
-    #         self.actions_mem = data['actions_mem']
-    #         self.d_scores_mem = data['d_scores_mem']
-    #
-    #         # Check if a model already exists
-    #         if not self.model and not self.load_model(): self.create_model(self.states_mem[0, 0].shape)
-    #
-    #         # Train the model
-    #         self.train(duration=data['duration'], epochs=epochs, score_adj=False)
-    
     def train(self, duration, max_duration: int = 100, epochs: int = 1, score_adj: bool = True):
         """
         Train the model with the memorised data. Each game is trained sequentially since length of states doesn't
@@ -169,12 +149,12 @@ class DeepQLearning(Agent):
         assert len(self.states_mem) == len(self.actions_mem) == len(self.d_scores_mem)
         assert len(self.states_mem[0]) == len(duration)  # Equal number of environments
         assert len(self.states_mem) == max(duration)  # Equal number of environments
-        prep("Training the DQL agent", key='dql')
-        
+
+        # TODO: Possibility to execute in parallel; performance increase
         # Iterate over each of the environments to collect all the training data: inputs (states) and outputs (q-values)
         states = []
         q_values = []
-        for i_env, d in enumerate(duration):  # TODO: Perform in parallel!
+        for i_env, d in enumerate(duration):
             last_state = self.states_mem[d - 1][i_env]
             scores = [s[i_env] for s in self.d_scores_mem[:d]]
             if score_adj:
@@ -222,8 +202,8 @@ class DeepQLearning(Agent):
                 x=np.asarray(states),  # TODO: Add callback to TensorBoard
                 y=np.asarray(q_values),
                 epochs=epochs,
+                verbose=0,
         )
-        drop(key='dql')
         # print("Average duration:", sum(duration) / len(duration), "steps")  # TODO: Add callback to TensorBoard
         self.save_model()
     
@@ -243,7 +223,7 @@ class DeepQLearning(Agent):
         """Save the current model in the 'models' folder found under root."""
         if self.model_v == 0: return  # Unversioned models aren't saved/loaded
         self.model.save(f"models/dql/{model_name if model_name else f'model_{self.model_v}'}")
-        print("==> Model saved successfully!")
+        # print("==> Model saved successfully!")
     
     def load_model(self, model_name: str = None):
         """Load the model, return boolean indicating if model loaded successfully or not."""

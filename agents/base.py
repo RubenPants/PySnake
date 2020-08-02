@@ -17,6 +17,9 @@ class Agent:
         """Initialise the common parameters shared by all agents."""
         self.training: bool = training  # Indicates if agent is training or not
         self.last_score = None  # Previous score of the game, parsed from messenger
+        
+    def __str__(self):
+        return f"Agent()"
     
     def __call__(self, games):
         """
@@ -30,7 +33,7 @@ class Agent:
     def reset(self, n_envs, sample_game):
         self.last_score = [0] * n_envs
     
-    def train(self, duration):
+    def train(self, duration, max_duration):
         warnings.warn("Nothing is trained")
     
     def save_model(self, model_name: str = None):

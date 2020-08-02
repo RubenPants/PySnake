@@ -13,6 +13,9 @@ class Empty(Agent):
     
     def __init__(self):
         super().__init__()  # Dummy messenger
+        
+    def __str__(self):
+        return "Empty()"
     
     def __call__(self, _):
         """Always drives straight."""

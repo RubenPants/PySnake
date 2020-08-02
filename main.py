@@ -3,11 +3,9 @@ main.py
 
 TODO
 """
-from agents.a_star import AStar
 from agents.dql_agent import DeepQLearning
-from environment.game import Game
 from environment.manager import Manager
-from models.handler import CNN, MLP
+from models.handler import MLP
 from visualising.visualiser import live_visualisation
 
 agent = DeepQLearning(model_type=MLP, model_v=1)
@@ -21,6 +19,7 @@ manager = Manager(n_envs=512, agent=agent, max_steps=100)
 
 # manager.train()
 # manager.train_batch(iterations=200)
+manager.train_scheme(scheme_path="schemes/dql.json")
 
 live_visualisation(agent=agent)
 # manager.train_batch(iterations=10)

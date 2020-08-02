@@ -22,6 +22,12 @@ class AStar(Agent):
         self.refresh_rate = refresh_rate  # Number of steps before recalculation
         self.recalculate = None  # Timer until recalculation
         self.path_remainder = None
+        
+    def __str__(self):
+        return f"AStar(\n" \
+               f"\trefresh_rate={self.refresh_rate}\n" \
+               f"\trecalculate={self.recalculate}\n" \
+               f")"
     
     def __call__(self, games):
         """

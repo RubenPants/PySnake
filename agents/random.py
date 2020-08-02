@@ -16,6 +16,9 @@ class Random(Agent):
     def __init__(self):
         super().__init__()  # Dummy messenger
     
+    def __str__(self):
+        return "Random()"
+    
     def __call__(self, _):
         """Always drives straight."""
         return choice([[0], [1], [2]])

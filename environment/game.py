@@ -65,7 +65,7 @@ class Game:
         try:
             if self.snake.step(apple=self.apple):
                 self.set_apple_pos()
-                self.score += 1  # Reward for eating apple
+                self.score += .5  # Reward for eating apple
             
             # Update the board
             self.update_board()
@@ -139,10 +139,6 @@ class Game:
         if self.snake.direction == DOWN: board = np.rot90(board, 2)
         if self.snake.direction == LEFT: board = np.rot90(board, 3)
         return board  # shape = (height, width, depth)
-    
-    def get_board_raw(self):
-        """Return the game's board in raw form."""
-        return self.board.reshape(self.board.shape + (1,))
     
     # ----------------------------------------------------> APPLE <--------------------------------------------------- #
     
