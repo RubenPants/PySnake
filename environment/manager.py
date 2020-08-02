@@ -24,8 +24,11 @@ class Manager:
     def train_batch(self, iterations: int = 1000):
         for i in range(iterations):
             print(f"==> Training iteration {i + 1}")
-            scores = self.train()
-            print(min(scores), "-", sum(scores) / len(scores), "-", max(scores))  # TODO: Remove!
+            scores = sorted(self.train())
+            print("===> Scores (25th-50th-75th percentile):",
+                  scores[int(len(scores) * .25)], "-",
+                  scores[int(len(scores) * .5)], "-",
+                  scores[int(len(scores) * .75)])
     
     def train(self):
         """Play the game while recording actions and rewards."""
@@ -55,7 +58,7 @@ class Manager:
                     duration[i] += 1
         
         # Train the model before returning the scores
-        self.agent.train(duration)
+        self.agent.train(duration=duration, max_duration=self.max_steps)
         
         # Return the final scores of each game
         return [g.score for g in games]

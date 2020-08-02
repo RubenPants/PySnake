@@ -85,37 +85,37 @@ class Game:
     # ----------------------------------------------------> BOARD <--------------------------------------------------- #
     
     def create_board(self):
-        """Create the initial board."""
-        board = np.zeros((self.width, self.height))
+        """Create the initial board, which consists out of two layers: (snake+wall) and apple."""
+        board = np.zeros((self.width, self.height, 2))
         
         # Add walls
-        board[0, :] = np.ones((self.width,)) * -1
-        board[-1, :] = np.ones((self.width,)) * -1
-        board[:, 0] = np.ones((self.height,)) * -1
-        board[:, -1] = np.ones((self.height,)) * -1
+        board[0, :, 0] = np.ones((self.width,))
+        board[-1, :, 0] = np.ones((self.width,))
+        board[:, 0, 0] = np.ones((self.height,))
+        board[:, -1, 0] = np.ones((self.height,))
         
         # Add snake and apple
-        for p in self.snake.body: board[p.x, p.y] = -1
-        board[self.apple.x, self.apple.y] = 1
+        for p in self.snake.body: board[p.x, p.y, 0] = 1
+        board[self.apple.x, self.apple.y, 1] = 1
         return board
     
     def clear_board(self):
         """Clear the snake positions from the board."""
-        self.board[1:-1, 1:-1] *= 0
+        self.board[1:-1, 1:-1, :] *= 0
     
     def update_board(self):
         """Update the position of the snake and apple."""
         self.clear_board()
-        for p in self.snake.body: self.board[p.x, p.y] = -1
-        self.board[self.apple.x, self.apple.y] = 1
+        for p in self.snake.body: self.board[p.x, p.y, 0] = 1
+        self.board[self.apple.x, self.apple.y, 1] = 1
     
     def show_board(self):
         """Print out the board."""
         for row in reversed(range(self.width)):
             for col in range(self.height):
-                if self.board[col, row] == -1:
+                if self.board[col, row, 0] == 1:
                     print(" # ", end="")
-                elif self.board[col, row] == 1:
+                elif self.board[col, row, 1] == 1:
                     print(" o ", end="")
                 else:
                     print("   ", end="")
@@ -138,7 +138,7 @@ class Game:
         if self.snake.direction == RIGHT: board = np.rot90(board, 1)
         if self.snake.direction == DOWN: board = np.rot90(board, 2)
         if self.snake.direction == LEFT: board = np.rot90(board, 3)
-        return board.reshape(board.shape + (1,))  # shape = (height, width, depth)
+        return board  # shape = (height, width, depth)
     
     def get_board_raw(self):
         """Return the game's board in raw form."""

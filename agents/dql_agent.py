@@ -9,6 +9,7 @@ from random import choice, random
 import numpy as np
 import tensorflow as tf
 
+from agents.a_star import AStar
 from agents.base import Agent
 from models.handler import create_model
 from utils.timing import drop, prep
@@ -28,14 +29,14 @@ class DeepQLearning(Agent):
                  model_type,
                  model_v: int = 0,
                  training: bool = True,
-                 gamma: float = 0.9,
-                 lr: float = 0.05,
+                 gamma: float = 0.8,
+                 lr: float = 0.01,
                  eps_decay: float = 0.99,
                  eps_max: float = 0.2,
                  eps_min: float = 0.1):
         super().__init__(training=training)
         self.model = None  # Policy used to query actions given a state
-        self.model_t = model_type  # Type of policy used (mlp, cnn, rnn)
+        self.model_t = model_type  # Type of policy used (mlp, cnn)
         self.model_v = model_v  # Version number of the model, 0 is non-versioned
         
         # Training
@@ -44,7 +45,7 @@ class DeepQLearning(Agent):
         self.d_scores_mem: list = None  # Keeps the memorised delta scores
         
         # DQL specific
-        self.gamma: float = gamma  # Discount factor
+        self.gamma: float = gamma  # Decaying factor to discount the scores
         self.lr: float = lr  # Learning rate, should be rather high (model itself updates via separate lr=0.01)
         self.eps: float = None  # Randomisation epsilon
         self.eps_decay: float = eps_decay  # Decaying factor of the randomisation epsilon
@@ -114,12 +115,21 @@ class DeepQLearning(Agent):
         
         # Parse actions from predictions (choose most likely actions)
         actions = [np.argmax(p) for p in predictions]
-        self.actions_mem.append(actions)
         
         # Randomise fraction epsilon of the actions, and decay the epsilon afterwards
+        a_star = AStar()
+        a_star.reset(n_envs=1, sample_game=None)
         for i in range(len(actions)):
-            if random() < self.eps: actions[i] = choice([0, 1, 2])
+            if random() < self.eps:
+                if random() < 0.5:
+                    actions[i] = choice([0, 1, 2])  # Perform a randomised action
+                else:
+                    a_star.recalculate = [0]
+                    actions[i] = a_star([games[i]])[0]  # Ask the A* algorithm for the most suitable action
         self.eps = max(self.eps * self.eps_decay, self.eps_min)
+        
+        # Remember and return the chosen actions
+        self.actions_mem.append(actions)
         return actions
     
     def create_model(self, input_dim):
@@ -145,12 +155,13 @@ class DeepQLearning(Agent):
     #         # Train the model
     #         self.train(duration=data['duration'], epochs=epochs, score_adj=False)
     
-    def train(self, duration, epochs: int = 1, score_adj: bool = True):
+    def train(self, duration, max_duration: int = 100, epochs: int = 1, score_adj: bool = True):
         """
         Train the model with the memorised data. Each game is trained sequentially since length of states doesn't
         necessarily coincide.
         
         :param duration: Indicates duration of each simulation
+        :param max_duration: Maximum duration of the simulation
         :param epochs: Number of training epochs
         :param score_adj: Adjust the score (shift to right) to match (state, action) pairs
         """
@@ -160,15 +171,15 @@ class DeepQLearning(Agent):
         assert len(self.states_mem) == max(duration)  # Equal number of environments
         prep("Training the DQL agent", key='dql')
         
-        # Iterate over each of the environments to collect all the states
-        states = []  # Inputs of the model
-        q_values = []  # Desired (updated) outputs of the model
-        for i_env, d in enumerate(duration):
+        # Iterate over each of the environments to collect all the training data: inputs (states) and outputs (q-values)
+        states = []
+        q_values = []
+        for i_env, d in enumerate(duration):  # TODO: Perform in parallel!
             last_state = self.states_mem[d - 1][i_env]
             scores = [s[i_env] for s in self.d_scores_mem[:d]]
             if score_adj:
                 scores = scores[1:]
-                if d == max(duration) and sum(scores) > 0:  # Never died and found at least one apple in its lifetime
+                if d == max_duration and sum(scores) > 0:  # Never died and found at least one apple in its lifetime
                     scores.append(0)
                 else:
                     scores.append(-1)  # Last action was invalid move; punish
@@ -177,26 +188,39 @@ class DeepQLearning(Agent):
             discounted_scores = self.discount(scores, last_state)
             
             # Train
+            states_temp = []
             for t in range(d):
-                states.append(self.states_mem[t][i_env])
+                # Ignore all entries with negligible discounted scores
+                if abs(discounted_scores[t]) <= 1e-2: continue
                 
-                # Fetch the Q-value for the given state
-                q_value = self.model.predict(states[-1].reshape((1,) + states[-1].shape))
-                
-                # Decay the Q-values with the learning rate
-                q_value *= (1 - self.lr)
+                # Get the state to add to the dataset
+                states_temp.append(self.states_mem[t][i_env])
+            
+            # Make predictions
+            q_values_temp = self.model.predict(np.asarray(states_temp))
+            
+            # Decay the Q-values with the learning rate
+            q_values_temp *= (1 - self.lr)
+            
+            # Update the Q-values with the calculated discounted scores
+            i = 0
+            for t in range(d):
+                # Ignore all entries with negligible discounted scores
+                if abs(discounted_scores[t]) <= 1e-2: continue
                 
                 # Increase the action-chosen Q-value with discounted_score * lr
-                q = q_value[0][self.actions_mem[t][i_env]]
-                q_value[0][self.actions_mem[t][i_env]] = min(max(q + self.lr * discounted_scores[t], 0), 1)
-                q_values.append(q_value)
-            assert len(states) == len(q_values)
+                q = q_values_temp[i][self.actions_mem[t][i_env]]
+                q_values_temp[i][self.actions_mem[t][i_env]] = min(max(q + self.lr * discounted_scores[t], 0), 1)
+                i += 1
+            
+            # Add the data
+            states += states_temp
+            q_values += q_values_temp.tolist()
         
         # Train the model
         self.model.fit(
                 x=np.asarray(states),  # TODO: Add callback to TensorBoard
                 y=np.asarray(q_values),
-                # batch_size=16,
                 epochs=epochs,
         )
         drop(key='dql')
