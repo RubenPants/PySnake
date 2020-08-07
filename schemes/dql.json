@@ -1,27 +1,27 @@
 [
   {
-    "iterations": 100,
-    "n_env": 128,
+    "iterations": 200,
+    "n_env": 512,
     "steps": 100,
     "lr": 0.01,
-    "gamma": 0.6,
+    "gamma": 0.8,
     "eps_decay": 0.98,
     "eps_max": 0.4,
     "eps_min": 0.2
   },
   {
     "iterations": 100,
-    "n_env": 256,
+    "n_env": 512,
     "steps": 200,
     "lr": 0.001,
-    "gamma": 0.8,
+    "gamma": 0.9,
     "eps_decay": 0.985,
     "eps_max": 0.4,
     "eps_min": 0.1
   },
   {
     "iterations": 100,
-    "n_env": 512,
+    "n_env": 256,
     "steps": 500,
     "lr": 0.0001,
     "gamma": 0.9,

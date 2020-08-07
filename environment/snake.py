@@ -46,6 +46,7 @@ class Snake:
         if self.body[0] in self.body[1:] or \
                 self.body[0].x in [0, self.game.width - 1] or \
                 self.body[0].y in [0, self.game.height - 1]:
+            self.body = self.body[:-1]
             raise PositionException("Invalid snake position")
         
         # Enlarge snake if apple is eaten

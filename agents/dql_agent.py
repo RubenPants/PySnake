@@ -12,7 +12,6 @@ import tensorflow as tf
 from agents.a_star import AStar
 from agents.base import Agent
 from models.handler import create_model
-from utils.timing import drop, prep
 
 
 class DeepQLearning(Agent):
@@ -22,16 +21,16 @@ class DeepQLearning(Agent):
         'training', 'm_tag', 'last_score',
         'model', 'model_t', 'model_v',
         'states_mem', 'actions_mem', 'd_scores_mem',
-        'gamma', 'lr', 'eps', 'eps_decay', 'eps_max', 'eps_min'
+        'gamma', 'lr', 'eps', 'eps_decay', 'eps_max', 'eps_min',
     }
     
     def __init__(self,
                  model_type,
                  model_v: int = 0,
                  training: bool = True,
-                 gamma: float = 0.8,
+                 gamma: float = 0.9,
                  lr: float = 0.01,
-                 eps_decay: float = 0.99,
+                 eps_decay: float = 0.98,
                  eps_max: float = 0.4,
                  eps_min: float = 0.1):
         super().__init__(training=training)
@@ -51,7 +50,7 @@ class DeepQLearning(Agent):
         self.eps_decay: float = eps_decay  # Decaying factor of the randomisation epsilon
         self.eps_max: float = eps_max  # Maximum value of the randomisation epsilon
         self.eps_min: float = eps_min  # Minimum value of the randomisation epsilon
-        
+    
     def __str__(self):
         return f"DeepQLearning(\n" \
                f"\tmodel-version={self.model_v}\n" \
@@ -135,21 +134,20 @@ class DeepQLearning(Agent):
         self.model = create_model(model_tag=self.model_t, input_dim=input_dim)
         self.model.summary()
     
-    def train(self, duration, max_duration: int = 100, epochs: int = 1, score_adj: bool = True):
+    def train(self, duration, max_duration: int = 100, score_adj: bool = True):
         """
         Train the model with the memorised data. Each game is trained sequentially since length of states doesn't
         necessarily coincide.
         
         :param duration: Indicates duration of each simulation
         :param max_duration: Maximum duration of the simulation
-        :param epochs: Number of training epochs
         :param score_adj: Adjust the score (shift to right) to match (state, action) pairs
         """
         assert self.states_mem is not None and self.actions_mem is not None and self.d_scores_mem is not None
         assert len(self.states_mem) == len(self.actions_mem) == len(self.d_scores_mem)
         assert len(self.states_mem[0]) == len(duration)  # Equal number of environments
         assert len(self.states_mem) == max(duration)  # Equal number of environments
-
+        
         # TODO: Possibility to execute in parallel; performance increase
         # Iterate over each of the environments to collect all the training data: inputs (states) and outputs (q-values)
         states = []
@@ -201,8 +199,9 @@ class DeepQLearning(Agent):
         self.model.fit(
                 x=np.asarray(states),  # TODO: Add callback to TensorBoard
                 y=np.asarray(q_values),
-                epochs=epochs,
+                epochs=1,
                 verbose=0,
+                initial_epoch=1,
         )
         # print("Average duration:", sum(duration) / len(duration), "steps")  # TODO: Add callback to TensorBoard
         self.save_model()
@@ -222,13 +221,14 @@ class DeepQLearning(Agent):
     def save_model(self, model_name: str = None):
         """Save the current model in the 'models' folder found under root."""
         if self.model_v == 0: return  # Unversioned models aren't saved/loaded
-        self.model.save(f"models/dql/{model_name if model_name else f'model_{self.model_v}'}")
+        self.model.save(f"models/dql/{model_name if model_name else f'{self.model_t}_{self.model_v}'}")
         # print("==> Model saved successfully!")
+        # TODO: Save meta-data as well
     
     def load_model(self, model_name: str = None):
         """Load the model, return boolean indicating if model loaded successfully or not."""
         if self.model_v == 0: return False  # Unversioned models aren't saved/loaded
-        if not model_name: model_name = f"model_{self.model_v}"
+        if not model_name: model_name = f"{self.model_t}_{self.model_v}"
         try:
             self.model = tf.keras.models.load_model(f"models/dql/{model_name}")
             self.model.summary()

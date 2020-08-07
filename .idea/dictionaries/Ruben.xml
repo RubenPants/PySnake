@@ -2,6 +2,7 @@
   <dictionary name="Ruben">
     <words>
       <w>convolutional</w>
+      <w>pbar</w>
       <w>perceptron</w>
       <w>pyglet</w>
       <w>unversioned</w>
