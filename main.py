@@ -10,7 +10,7 @@ from visualising.visualiser import live_visualisation
 
 agent = DeepQLearning(model_type=MLP, model_v=1)
 # agent = AStar()
-manager = Manager(n_envs=256, agent=agent, max_steps=100)
+manager = Manager(n_envs=5, agent=agent, max_steps=100)
 # manager.train_scheme(scheme_path="schemes/dql.json")
 manager.train_continuous(iterations=1000)
 

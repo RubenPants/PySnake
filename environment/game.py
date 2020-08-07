@@ -67,7 +67,7 @@ class Game:
             self.prev_snake_body = self.snake.body.copy()
             if self.snake.step(apple=self.apple):
                 self.set_apple_pos()
-                self.score += .5  # Reward for eating apple
+                self.score += 1  # Reward for eating apple
             
             # Update the board
             self.update_board()

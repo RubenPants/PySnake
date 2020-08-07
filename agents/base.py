@@ -35,6 +35,7 @@ class Agent:
     
     def train(self, duration, max_duration):
         warnings.warn("Nothing is trained")
+        return None
     
     def save_model(self, model_name: str = None):
         """Save the current model. May be redundant for non-NN models."""

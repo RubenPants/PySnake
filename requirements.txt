@@ -4,3 +4,4 @@ arcade~=2.4.1
 numpy~=1.19.1
 tensorflow~=2.2.0
 tqdm~=4.48.0
+tensorboard~=2.2.2

@@ -29,9 +29,9 @@ class DeepQLearning(Agent):
                  model_v: int = 0,
                  training: bool = True,
                  gamma: float = 0.9,
-                 lr: float = 0.01,
+                 lr: float = 0.05,
                  eps_decay: float = 0.98,
-                 eps_max: float = 0.4,
+                 eps_max: float = 0.6,
                  eps_min: float = 0.1):
         super().__init__(training=training)
         self.model = None  # Policy used to query actions given a state
@@ -119,7 +119,7 @@ class DeepQLearning(Agent):
         a_star.reset(n_envs=1, sample_game=None)
         for i in range(len(actions)):
             if random() < self.eps:
-                if random() < 0.5:
+                if random() < 0.2:  # Empirically chosen
                     actions[i] = choice([0, 1, 2])  # Perform a randomised action
                 else:
                     a_star.recalculate = [0]
@@ -153,7 +153,6 @@ class DeepQLearning(Agent):
         states = []
         q_values = []
         for i_env, d in enumerate(duration):
-            last_state = self.states_mem[d - 1][i_env]
             scores = [s[i_env] for s in self.d_scores_mem[:d]]
             if score_adj:
                 scores = scores[1:]
@@ -163,7 +162,8 @@ class DeepQLearning(Agent):
                     scores.append(-1)  # Last action was invalid move; punish
             
             # Discount the scores
-            discounted_scores = self.discount(scores, last_state)
+            # last_state = self.states_mem[d - 1][i_env]  # TODO: Disabled last_state
+            discounted_scores = self.discount(scores)
             
             # Train
             states_temp = []
@@ -196,20 +196,20 @@ class DeepQLearning(Agent):
             q_values += q_values_temp.tolist()
         
         # Train the model
-        self.model.fit(
+        history = self.model.fit(
                 x=np.asarray(states),  # TODO: Add callback to TensorBoard
                 y=np.asarray(q_values),
                 epochs=1,
                 verbose=0,
-                initial_epoch=1,
         )
         # print("Average duration:", sum(duration) / len(duration), "steps")  # TODO: Add callback to TensorBoard
         self.save_model()
+        return history.history['loss'][0]
     
-    def discount(self, scores, last_state):
+    def discount(self, scores, state=None):
         """Discount the received rewards."""
         # The initial cumulative reward will be the discounted maximal Q-value of the current (last) state
-        cum_r = self.gamma * np.max(self.model.predict(last_state.reshape((1,) + last_state.shape)))  # Batch-size=1
+        cum_r = self.gamma * np.max(self.model.predict(state.reshape((1,) + state.shape))) if state else 0
         
         # Discount all the rewards in reverse order (for efficiency)
         discounted = np.zeros_like(scores, dtype=np.float32)

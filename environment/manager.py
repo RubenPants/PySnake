@@ -6,6 +6,8 @@ Manager to train (in parallel) and evaluate the Agents.
 import json
 from random import random
 
+import tensorflow as tf
+from tensorboard import summary as summary_lib
 from tqdm import tqdm
 
 from environment.game import Game
@@ -110,11 +112,14 @@ class Manager:
         
         # Create all the games
         games = []
-        for _ in range(self.n_envs): games.append(Game())
+        for iter in range(self.n_envs): games.append(Game())
+        
+        # Open TensorBoard writer
+        writer = tf.summary.create_file_writer("./logs/sdf")
         
         # Train the agent for each of the training sessions
         pbar = tqdm(range(iterations), desc=f"min={-1}, avg={-1}, max={-1}, avg_size={3}")
-        for _ in pbar:
+        for iteration in pbar:
             # Reset the agent
             self.agent.reset(n_envs=self.n_envs, sample_game=games[0])
             
@@ -135,7 +140,7 @@ class Manager:
                         duration[i] += 1
             
             # Train the model before returning the scores
-            self.agent.train(duration=duration, max_duration=self.max_steps)
+            loss = self.agent.train(duration=duration, max_duration=self.max_steps)
             
             # Display the final scores of each game
             scores = sorted([g.score for g in games])
@@ -144,6 +149,11 @@ class Manager:
                                  f"avg={round(sum(scores) / len(scores), 2)}, "
                                  f"max={round(max(scores), 2)}, "
                                  f"avg_size={round(avg_size, 2)}")
+
+            # Report to TensorBoard
+            with writer.as_default():
+                summary_lib.scalar('test', avg_size, step=iteration)
+                writer.flush()
             
             # Undo each of the games, reset if no valid action left
             for g in games:
