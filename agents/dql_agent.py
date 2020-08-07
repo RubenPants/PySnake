@@ -18,7 +18,7 @@ class DeepQLearning(Agent):
     """Agent that learns via the Deep Q-Learning algorithm."""
     
     __slots__ = {
-        'training', 'm_tag', 'last_score',
+        'training', 'last_score', 'tag',
         'model', 'model_t', 'model_v',
         'states_mem', 'actions_mem', 'd_scores_mem',
         'gamma', 'lr', 'eps', 'eps_decay', 'eps_max', 'eps_min',
@@ -31,9 +31,9 @@ class DeepQLearning(Agent):
                  gamma: float = 0.9,
                  lr: float = 0.05,
                  eps_decay: float = 0.98,
-                 eps_max: float = 0.6,
+                 eps_max: float = 0.4,
                  eps_min: float = 0.1):
-        super().__init__(training=training)
+        super().__init__(training=training, tag='dql')
         self.model = None  # Policy used to query actions given a state
         self.model_t = model_type  # Type of policy used (mlp, cnn)
         self.model_v = model_v  # Version number of the model, 0 is non-versioned
@@ -162,8 +162,8 @@ class DeepQLearning(Agent):
                     scores.append(-1)  # Last action was invalid move; punish
             
             # Discount the scores
-            # last_state = self.states_mem[d - 1][i_env]  # TODO: Disabled last_state
-            discounted_scores = self.discount(scores)
+            last_state = self.states_mem[d - 1][i_env]  # TODO: Disabled last_state
+            discounted_scores = self.discount(scores, state=last_state)
             
             # Train
             states_temp = []
@@ -209,7 +209,7 @@ class DeepQLearning(Agent):
     def discount(self, scores, state=None):
         """Discount the received rewards."""
         # The initial cumulative reward will be the discounted maximal Q-value of the current (last) state
-        cum_r = self.gamma * np.max(self.model.predict(state.reshape((1,) + state.shape))) if state else 0
+        cum_r = self.gamma * np.max(self.model.predict(state.reshape((1,) + state.shape))) if state is not None else 0
         
         # Discount all the rewards in reverse order (for efficiency)
         discounted = np.zeros_like(scores, dtype=np.float32)

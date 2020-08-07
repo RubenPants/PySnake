@@ -13,12 +13,12 @@ class AStar(Agent):
     """Adaptation of the A* algorithm."""
     
     __slots__ = {
-        'training', 'last_score',
+        'training', 'last_score', 'tag',
         'refresh_rate', 'recalculate', 'path_remainder'
     }
     
     def __init__(self, refresh_rate=10):
-        super().__init__()
+        super().__init__(tag='a_star')
         self.refresh_rate = refresh_rate  # Number of steps before recalculation
         self.recalculate = None  # Timer until recalculation
         self.path_remainder = None

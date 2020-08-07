@@ -5,9 +5,9 @@ Manager to train (in parallel) and evaluate the Agents.
 """
 import json
 from random import random
+from time import time
 
 import tensorflow as tf
-from tensorboard import summary as summary_lib
 from tqdm import tqdm
 
 from environment.game import Game
@@ -112,13 +112,14 @@ class Manager:
         
         # Create all the games
         games = []
-        for iter in range(self.n_envs): games.append(Game())
+        for _ in range(self.n_envs): games.append(Game())
         
         # Open TensorBoard writer
-        writer = tf.summary.create_file_writer("./logs/sdf")
+        writer = tf.summary.create_file_writer(
+                f"./logs/{self.agent.tag}_{self.agent.model_t}_{self.agent.model_v}_{time()}")
         
         # Train the agent for each of the training sessions
-        pbar = tqdm(range(iterations), desc=f"min={-1}, avg={-1}, max={-1}, avg_size={3}")
+        pbar = tqdm(range(iterations), desc=f"25th={-1}, 50th={-1}, 75ths={-1}, avg_size={3}")
         for iteration in pbar:
             # Reset the agent
             self.agent.reset(n_envs=self.n_envs, sample_game=games[0])
@@ -145,14 +146,29 @@ class Manager:
             # Display the final scores of each game
             scores = sorted([g.score for g in games])
             avg_size = sum([len(g.snake.body) for g in games]) / len(games)
-            pbar.set_description(f"min={round(min(scores), 2)}, "
-                                 f"avg={round(sum(scores) / len(scores), 2)}, "
-                                 f"max={round(max(scores), 2)}, "
+            pbar.set_description(f"25th={scores[int(.25 * len(scores))]}, "
+                                 f"50th={scores[int(.5 * len(scores))]}, "
+                                 f"75th={scores[int(.75 * len(scores))]}, "
                                  f"avg_size={round(avg_size, 2)}")
-
+            
             # Report to TensorBoard
             with writer.as_default():
-                summary_lib.scalar('test', avg_size, step=iteration)
+                tf.summary.scalar(name='snake size',
+                                  data=avg_size,
+                                  step=iteration,
+                                  description="The average size of the snake across the games")
+                tf.summary.scalar(name='25th score',
+                                  data=scores[int(.25 * len(scores))],
+                                  step=iteration,
+                                  description="25th percentile of the scores obtained across the games")
+                tf.summary.scalar(name='50th score',
+                                  data=scores[int(.5 * len(scores))],
+                                  step=iteration,
+                                  description="25th percentile of the scores obtained across the games")
+                tf.summary.scalar(name='75th score',
+                                  data=scores[int(.75 * len(scores))],
+                                  step=iteration,
+                                  description="25th percentile of the scores obtained across the games")
                 writer.flush()
             
             # Undo each of the games, reset if no valid action left

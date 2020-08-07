@@ -10,11 +10,11 @@ from agents.base import Agent
 
 class Random(Agent):
     __slots__ = {
-        'training', 'm_tag', 'last_score',
+        'training', 'tag', 'last_score',
     }
     
     def __init__(self):
-        super().__init__()  # Dummy messenger
+        super().__init__(tag='random')  # Dummy messenger
     
     def __str__(self):
         return "Random()"

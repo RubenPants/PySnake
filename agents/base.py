@@ -10,14 +10,15 @@ class Agent:
     """Base Agent class."""
     
     __slots__ = {
-        'training', 'last_score'
+        'training', 'last_score', 'tag'
     }
     
-    def __init__(self, training: bool = False):
+    def __init__(self, training: bool = False, tag: str = 'base'):
         """Initialise the common parameters shared by all agents."""
         self.training: bool = training  # Indicates if agent is training or not
         self.last_score = None  # Previous score of the game, parsed from messenger
-        
+        self.tag: str = tag  # Identifying tag denoting the type of agent
+    
     def __str__(self):
         return f"Agent()"
     
