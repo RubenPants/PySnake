@@ -27,10 +27,10 @@ def get_mlp(input_dim):
     model.add(tf.keras.layers.Input(input_dim,
                                     name="Input"))
     model.add(tf.keras.layers.Flatten(name="Flatten"))
-    model.add(tf.keras.layers.Dense(64,
+    model.add(tf.keras.layers.Dense(128,
                                     activation='relu',
                                     name='Start'))
-    model.add(tf.keras.layers.Dense(64,
+    model.add(tf.keras.layers.Dense(128,
                                     activation='relu',
                                     name='Intermediate'))
     model.add(tf.keras.layers.Dense(3,

@@ -158,6 +158,8 @@ class DeepQLearning(Agent):
                 scores = scores[1:]
                 if d == max_duration and sum(scores) > 0:  # Never died and found at least one apple in its lifetime
                     scores.append(0)
+                elif d == max_duration:
+                    scores.append(-.1)  # Never found apple, but didn't die
                 else:
                     scores.append(-1)  # Last action was invalid move; punish
             
@@ -209,7 +211,10 @@ class DeepQLearning(Agent):
     def discount(self, scores, state=None):
         """Discount the received rewards."""
         # The initial cumulative reward will be the discounted maximal Q-value of the current (last) state
-        cum_r = self.gamma * np.max(self.model.predict(state.reshape((1,) + state.shape))) if state is not None else 0
+        if state is not None and scores[-1] >= 0:
+            cum_r = self.gamma * np.max(self.model.predict(state.reshape((1,) + state.shape)))
+        else:
+            cum_r = 0
         
         # Discount all the rewards in reverse order (for efficiency)
         discounted = np.zeros_like(scores, dtype=np.float32)
@@ -218,17 +223,22 @@ class DeepQLearning(Agent):
             discounted[t] = cum_r
         return discounted
     
-    def save_model(self, model_name: str = None):
+    def save_model(self, model_name: str = None, epoch: int = None):
         """Save the current model in the 'models' folder found under root."""
         if self.model_v == 0: return  # Unversioned models aren't saved/loaded
-        self.model.save(f"models/dql/{model_name if model_name else f'{self.model_t}_{self.model_v}'}")
+        if not model_name:
+            model_name = f'{self.model_t}_{self.model_v}'
+            if epoch is not None: model_name += f'_e{epoch}'
+        self.model.save(f"models/dql/{model_name}")
         # print("==> Model saved successfully!")
         # TODO: Save meta-data as well
     
-    def load_model(self, model_name: str = None):
+    def load_model(self, model_name: str = None, epoch: int = None):
         """Load the model, return boolean indicating if model loaded successfully or not."""
         if self.model_v == 0: return False  # Unversioned models aren't saved/loaded
-        if not model_name: model_name = f"{self.model_t}_{self.model_v}"
+        if not model_name:
+            model_name = f"{self.model_t}_{self.model_v}"
+            if epoch is not None: model_name += f'_e{epoch}'
         try:
             self.model = tf.keras.models.load_model(f"models/dql/{model_name}")
             self.model.summary()

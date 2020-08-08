@@ -38,10 +38,10 @@ class Agent:
         warnings.warn("Nothing is trained")
         return None
     
-    def save_model(self, model_name: str = None):
+    def save_model(self, model_name: str = None, epoch: int = None):
         """Save the current model. May be redundant for non-NN models."""
         warnings.warn("No model saved")
     
-    def load_model(self, model_name: str = None):
+    def load_model(self, model_name: str = None, epoch: int = None):
         """Load the current model. May be redundant for non-NN models."""
         warnings.warn("No model loaded")

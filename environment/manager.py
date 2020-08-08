@@ -35,6 +35,7 @@ class Manager:
         
         # Reset the agent
         self.agent.reset(n_envs=self.n_envs, sample_game=games[0])
+        self.agent.save_model(epoch=0)
         
         # Evaluate the agent on the different games
         duration = [0, ] * self.n_envs  # First iteration gets duration 0
@@ -95,9 +96,6 @@ class Manager:
                 data[1] = scores[int(len(scores) * .5)]
                 data[2] = scores[int(len(scores) * .75)]
                 pbar.set_description(f"25th={data[0]}, 50th={data[1]}, 75th={data[2]}")
-            
-            # TODO: Perhaps make summary for scheme segment?
-            pass
     
     def train_continuous(self, iterations: int = 100):
         """
@@ -108,11 +106,13 @@ class Manager:
         
         :param iterations: Number of training sessions
         """
-        self.agent.training = True
-        
         # Create all the games
         games = []
         for _ in range(self.n_envs): games.append(Game())
+        
+        # Setup the agent
+        self.agent.training = True
+        self.agent.reset(n_envs=self.n_envs, sample_game=games[0])
         
         # Open TensorBoard writer
         writer = tf.summary.create_file_writer(
@@ -143,6 +143,9 @@ class Manager:
             # Train the model before returning the scores
             loss = self.agent.train(duration=duration, max_duration=self.max_steps)
             
+            # Save on epochs
+            if iteration % 5 == 0: self.agent.save_model(epoch=iteration)
+            
             # Display the final scores of each game
             scores = sorted([g.score for g in games])
             avg_size = sum([len(g.snake.body) for g in games]) / len(games)
@@ -169,11 +172,19 @@ class Manager:
                                   data=scores[int(.75 * len(scores))],
                                   step=iteration,
                                   description="25th percentile of the scores obtained across the games")
+                tf.summary.scalar(name='loss',
+                                  data=loss,
+                                  step=iteration,
+                                  description="Loss of the training")
+                tf.summary.scalar(name='duration',
+                                  data=sum(duration)/len(duration),
+                                  step=iteration,
+                                  description="Average duration of training session (steps)")
                 writer.flush()
             
             # Undo each of the games, reset if no valid action left
             for g in games:
-                if random() < 0.1:
+                if random() < .1:
                     g.reset()
                 else:
                     if not g.undo(): g.reset()
