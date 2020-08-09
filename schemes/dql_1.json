@@ -1,0 +1,35 @@
+[
+  {
+    "iterations": 10,
+    "n_env": 4096,
+    "steps": 20,
+    "lr": 0.05,
+    "gamma": 0.9,
+    "eps_decay": 0.95,
+    "eps_max": 0.6,
+    "eps_min": 0.2,
+    "a_star_ratio": 0.8
+  },
+  {
+    "iterations": 30,
+    "n_env": 2048,
+    "steps": 100,
+    "lr": 0.05,
+    "gamma": 0.9,
+    "eps_decay": 0.98,
+    "eps_max": 0.4,
+    "eps_min": 0.1,
+    "a_star_ratio": 0.8
+  },
+  {
+    "iterations": 160,
+    "n_env": 1024,
+    "steps": 500,
+    "lr": 0.05,
+    "gamma": 0.9,
+    "eps_decay": 1,
+    "eps_max": 0.05,
+    "eps_min": 0.05,
+    "a_star_ratio": 0.5
+  }
+]

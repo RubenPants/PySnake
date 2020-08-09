@@ -125,6 +125,5 @@ dmypy.json
 .pyre/
 
 # Custom
-recording/data/
-models/dql/
+models/dql/*_e*
 test.py

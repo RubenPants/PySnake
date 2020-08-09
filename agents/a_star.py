@@ -10,19 +10,24 @@ from utils.direction import DIR, turn_left, turn_right
 
 
 class AStar(Agent):
-    """Adaptation of the A* algorithm."""
-    
     __slots__ = {
         'training', 'last_score', 'tag',
         'refresh_rate', 'recalculate', 'path_remainder'
     }
     
-    def __init__(self, refresh_rate=10):
+    def __init__(self,
+                 refresh_rate=10
+                 ):
+        """
+        Initialisation of the Agent which handles via an adaptation of the A* algorithm.
+        
+        :param refresh_rate: Number of steps before recalculation of new A* path
+        """
         super().__init__(tag='a_star')
         self.refresh_rate = refresh_rate  # Number of steps before recalculation
         self.recalculate = None  # Timer until recalculation
         self.path_remainder = None
-        
+    
     def __str__(self):
         return f"AStar(\n" \
                f"\trefresh_rate={self.refresh_rate}\n" \
@@ -124,6 +129,7 @@ def a_star(start, goal, dim, body):
 
 
 def get_neighbours(pos, goal, dim, body):
+    """Get all valid neighbouring positions of the given position."""
     neighbours = set()
     for d in DIR:
         p = pos + d

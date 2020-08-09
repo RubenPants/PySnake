@@ -11,8 +11,20 @@ from utils.pos import Pos
 
 
 class Snake:
-    def __init__(self, game, length_init=3):
-        """Random initialisation of the snake object."""
+    __slots__ = {
+        'body', 'direction', 'game', 'length', 'length_init',
+    }
+    
+    def __init__(self,
+                 game,
+                 length_init=3
+                 ):
+        """
+        Random initialisation of the snake object.
+        
+        :param game: Game object in which the snake operates
+        :param length_init: Initial length of the snake
+        """
         self.body: list = []  # List of sorted positions to represent the snake (head to tail)
         self.direction: tuple = None  # Direction to which the snake is heading
         self.game = game  # Game object

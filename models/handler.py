@@ -61,7 +61,7 @@ def get_cnn(input_dim):
     model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2),
                                            name='MaxPool'))
     model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(32,
+    model.add(tf.keras.layers.Dense(64,
                                     activation='relu',
                                     name='Intermediate'))
     model.add(tf.keras.layers.Dense(3,

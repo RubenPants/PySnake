@@ -3,18 +3,23 @@ base.py
 
 The base agent, which should be inherited by the other agents.
 """
-import warnings
+from warnings import warn
 
 
 class Agent:
-    """Base Agent class."""
-    
     __slots__ = {
         'training', 'last_score', 'tag'
     }
     
-    def __init__(self, training: bool = False, tag: str = 'base'):
-        """Initialise the common parameters shared by all agents."""
+    def __init__(self,
+                 training: bool = False,
+                 tag: str = 'base'):
+        """
+        Initialise of base agent which carries the common parameters shared by all agents.
+        
+        :param training: Boolean indicating if the agent is training or not
+        :param tag: Unique tag identifying the agent class
+        """
         self.training: bool = training  # Indicates if agent is training or not
         self.last_score = None  # Previous score of the game, parsed from messenger
         self.tag: str = tag  # Identifying tag denoting the type of agent
@@ -32,16 +37,18 @@ class Agent:
         raise NotImplementedError
     
     def reset(self, n_envs, sample_game):
+        """Reset the agent to prepare for new evaluation."""
         self.last_score = [0] * n_envs
     
     def train(self, duration, max_duration):
-        warnings.warn("Nothing is trained")
+        """Train the agent."""
+        warn("Nothing is trained")
         return None
     
     def save_model(self, model_name: str = None, epoch: int = None):
         """Save the current model. May be redundant for non-NN models."""
-        warnings.warn("No model saved")
+        warn("No model saved")
     
     def load_model(self, model_name: str = None, epoch: int = None):
         """Load the current model. May be redundant for non-NN models."""
-        warnings.warn("No model loaded")
+        warn("No model loaded")

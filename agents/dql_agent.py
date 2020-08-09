@@ -15,13 +15,11 @@ from models.handler import create_model
 
 
 class DeepQLearning(Agent):
-    """Agent that learns via the Deep Q-Learning algorithm."""
-    
     __slots__ = {
         'training', 'last_score', 'tag',
         'model', 'model_t', 'model_v',
         'states_mem', 'actions_mem', 'd_scores_mem',
-        'gamma', 'lr', 'eps', 'eps_decay', 'eps_max', 'eps_min',
+        'gamma', 'lr', 'eps', 'eps_decay', 'eps_max', 'eps_min', 'a_star_ratio',
     }
     
     def __init__(self,
@@ -32,7 +30,20 @@ class DeepQLearning(Agent):
                  lr: float = 0.05,
                  eps_decay: float = 0.98,
                  eps_max: float = 0.4,
-                 eps_min: float = 0.1):
+                 eps_min: float = 0.1
+                 ):
+        """
+        Initialisation of the Deep Q-Learning agent.
+        
+        :param model_type: Type of model used (MLP, CNN)
+        :param model_v: Model version
+        :param training: Boolean indicating if the agent is training or not
+        :param gamma: Decaying factor to discount the scores through the agent's lifetime
+        :param lr: Learning rate to update the agent model's defined Q-values
+        :param eps_decay: Decaying factor of the action randomisation epsilon
+        :param eps_max: Maximum (initial) value for the action randomisation epsilon
+        :param eps_min: Minimum value for the action randomisation epsilon
+        """
         super().__init__(training=training, tag='dql')
         self.model = None  # Policy used to query actions given a state
         self.model_t = model_type  # Type of policy used (mlp, cnn)
@@ -50,6 +61,7 @@ class DeepQLearning(Agent):
         self.eps_decay: float = eps_decay  # Decaying factor of the randomisation epsilon
         self.eps_max: float = eps_max  # Maximum value of the randomisation epsilon
         self.eps_min: float = eps_min  # Minimum value of the randomisation epsilon
+        self.a_star_ratio: float = 0.8  # Ratio of using A* when action is overwritten
     
     def __str__(self):
         return f"DeepQLearning(\n" \
@@ -61,6 +73,7 @@ class DeepQLearning(Agent):
                f"\tmax(epsilon)={self.eps_max}\n" \
                f"\tmin(epsilon)={self.eps_min}\n" \
                f"\tdecay(epsilon)={self.eps_decay}\n" \
+               f"\ta_star_ratio={self.a_star_ratio}\n" \
                f")"
     
     def __call__(self, games):
@@ -119,11 +132,11 @@ class DeepQLearning(Agent):
         a_star.reset(n_envs=1, sample_game=None)
         for i in range(len(actions)):
             if random() < self.eps:
-                if random() < 0.2:  # Empirically chosen
-                    actions[i] = choice([0, 1, 2])  # Perform a randomised action
-                else:
+                if random() < self.a_star_ratio:  # Empirically chosen
                     a_star.recalculate = [0]
                     actions[i] = a_star([games[i]])[0]  # Ask the A* algorithm for the most suitable action
+                else:
+                    actions[i] = choice([0, 1, 2])  # Perform a randomised action
         self.eps = max(self.eps * self.eps_decay, self.eps_min)
         
         # Remember and return the chosen actions
@@ -148,7 +161,11 @@ class DeepQLearning(Agent):
         assert len(self.states_mem[0]) == len(duration)  # Equal number of environments
         assert len(self.states_mem) == max(duration)  # Equal number of environments
         
-        # TODO: Possibility to execute in parallel; performance increase
+        # Collect all the last states to discount (single prediction, increases speed)
+        last_states = []
+        for i_env, d in enumerate(duration): last_states.append(self.states_mem[d - 1][i_env])
+        q_values_last_state = self.model.predict(np.asarray(last_states))
+        
         # Iterate over each of the environments to collect all the training data: inputs (states) and outputs (q-values)
         states = []
         q_values = []
@@ -164,8 +181,7 @@ class DeepQLearning(Agent):
                     scores.append(-1)  # Last action was invalid move; punish
             
             # Discount the scores
-            last_state = self.states_mem[d - 1][i_env]  # TODO: Disabled last_state
-            discounted_scores = self.discount(scores, state=last_state)
+            discounted_scores = self.discount(scores, last_q_value=q_values_last_state[i_env])
             
             # Train
             states_temp = []
@@ -199,22 +215,18 @@ class DeepQLearning(Agent):
         
         # Train the model
         history = self.model.fit(
-                x=np.asarray(states),  # TODO: Add callback to TensorBoard
+                x=np.asarray(states),
                 y=np.asarray(q_values),
                 epochs=1,
                 verbose=0,
         )
-        # print("Average duration:", sum(duration) / len(duration), "steps")  # TODO: Add callback to TensorBoard
         self.save_model()
         return history.history['loss'][0]
     
-    def discount(self, scores, state=None):
+    def discount(self, scores, last_q_value=None):
         """Discount the received rewards."""
         # The initial cumulative reward will be the discounted maximal Q-value of the current (last) state
-        if state is not None and scores[-1] >= 0:
-            cum_r = self.gamma * np.max(self.model.predict(state.reshape((1,) + state.shape)))
-        else:
-            cum_r = 0
+        cum_r = self.gamma * np.max(last_q_value) if last_q_value is not None else 0
         
         # Discount all the rewards in reverse order (for efficiency)
         discounted = np.zeros_like(scores, dtype=np.float32)
@@ -231,7 +243,6 @@ class DeepQLearning(Agent):
             if epoch is not None: model_name += f'_e{epoch}'
         self.model.save(f"models/dql/{model_name}")
         # print("==> Model saved successfully!")
-        # TODO: Save meta-data as well
     
     def load_model(self, model_name: str = None, epoch: int = None):
         """Load the model, return boolean indicating if model loaded successfully or not."""
