@@ -14,14 +14,14 @@ from visualising.visualiser import live_visualisation
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train', type=bool, default=False)
-    parser.add_argument('--scheme', type=str, default="dql_1")
-    parser.add_argument('--evaluate', type=bool, default=True)
+    parser.add_argument('--train', type=bool, default=True)
+    parser.add_argument('--scheme', type=str, default="dql_3")
+    parser.add_argument('--evaluate', type=bool, default=False)
     parser.add_argument('--visualise', type=bool, default=False)
     
     parser.add_argument('--agent_type', type=str, default='dql')
-    parser.add_argument('--model_type', type=str, default='cnn')
-    parser.add_argument('--model_version', type=int, default=0)
+    parser.add_argument('--model_type', type=str, default='mlp')
+    parser.add_argument('--model_version', type=int, default=3)
     args = parser.parse_args()
     
     # Go over all the options

@@ -25,7 +25,7 @@ class Game:
                  width=11,
                  height=11,
                  pixels=20,
-                 apple_separate=False,
+                 apple_separate=True,
                  ):
         """
         Game object used as an environment to contain the snake entity.
@@ -55,13 +55,18 @@ class Game:
     
     # ----------------------------------------------------> MAIN <---------------------------------------------------- #
     
-    def step(self, a):
+    def step(self, a, uses_tuple: bool = False):
         """
         Update the game with the corresponding action.
         
         :param a: Action to perform
+        :param uses_tuple: Actions are in tuple representation (action, randomised)
         :return: Boolean indicating if game is still running
         """
+        random_a = False
+        if uses_tuple:
+            random_a = a[1]
+            a = a[0]
         assert a in [0, 1, 2]  # Straight, left, right
         if a == 1: self.snake.direction = turn_left(self.snake.direction)
         if a == 2: self.snake.direction = turn_right(self.snake.direction)
@@ -76,7 +81,7 @@ class Game:
             self.update_board()
             return True
         except PositionException:
-            self.score -= 1  # Punish for hitting into a wall
+            self.score -= .2 if random_a else 1  # Punish for hitting into a wall, less punishment if random action
             return False
     
     def reset(self):

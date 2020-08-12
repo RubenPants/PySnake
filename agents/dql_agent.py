@@ -110,7 +110,12 @@ class DeepQLearning(Agent):
         return [np.argmax(p) for p in predictions]
     
     def query_and_remember(self, games):
-        """Query for actions and remember both states and actions to use them as training data later on."""
+        """
+        Query for actions and remember both states and actions to use them as training data later on.
+        
+        :param games: Games for which predictions are made
+        :return: Actions together with a boolean indicating if the action was randomised
+        """
         # Fetch all the states from the given messages
         states = np.asarray([g.get_board_relative() for g in games])
         self.states_mem.append(states)
@@ -125,7 +130,7 @@ class DeepQLearning(Agent):
         predictions = self.model.predict(states)
         
         # Parse actions from predictions (choose most likely actions)
-        actions = [np.argmax(p) for p in predictions]
+        actions = [(np.argmax(p), False) for p in predictions]
         
         # Randomise fraction epsilon of the actions, and decay the epsilon afterwards
         a_star = AStar()
@@ -134,13 +139,13 @@ class DeepQLearning(Agent):
             if random() < self.eps:
                 if random() < self.a_star_ratio:  # Empirically chosen
                     a_star.recalculate = [0]
-                    actions[i] = a_star([games[i]])[0]  # Ask the A* algorithm for the most suitable action
+                    actions[i] = (a_star([games[i]])[0], False)  # Ask the A* algorithm for the most suitable action
                 else:
-                    actions[i] = choice([0, 1, 2])  # Perform a randomised action
+                    actions[i] = (choice([0, 1, 2]), True)  # Perform a randomised action
         self.eps = max(self.eps * self.eps_decay, self.eps_min)
         
         # Remember and return the chosen actions
-        self.actions_mem.append(actions)
+        self.actions_mem.append([a[0] for a in actions])
         return actions
     
     def create_model(self, input_dim):

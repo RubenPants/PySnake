@@ -53,12 +53,13 @@ class Manager:
         while not all(finished) and max(duration) < self.max_steps:
             # Get the actions for the current states
             actions = self.agent(games)
+            uses_tuple = isinstance(actions[0], tuple)
             
             # Go over each game and progress by one
             for i, (g, a, f) in enumerate(zip(games, actions, finished)):
                 if not f:
                     # Progress the game with one step
-                    finished[i] = not g.step(a=a)
+                    finished[i] = not g.step(a=a, uses_tuple=uses_tuple)
                     
                     # Progress duration of game
                     duration[i] += 1
